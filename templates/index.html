@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Rental - Available Cars</title>
+</head>
+<body>
+    <h1>Available Cars for Rent</h1>
+    
+    {% if cars %}
+        <ul>
+        {% for car in cars %}
+            <li>
+                <strong>{{ car['num_imma'] }}</strong> - {{ car['marque'] }} {{ car['modele'] }} 
+                - {{ car['kilometrage'] }} km 
+                - ${{ car['prix_location'] }} / day
+                - Status: {{ 'Rented' if car['etat'] == 1 else 'Available' }}
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No cars available at the moment.</p>
+    {% endif %}
+</body>
+</html>
