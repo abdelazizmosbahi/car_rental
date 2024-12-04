@@ -13,7 +13,11 @@ non_rented_cars = cars_collection.find({"etat": 0})
 print(list(non_rented_cars))  # Print the results of the query
 
 # Function to add a car
-def add_car(num_imma, marque, modele, kilometrage, etat, prix_location):
+def add_car(num_imma, marque, modele, kilometrage, etat, prix_location, images):
+    """
+    Adds a car to the database.
+    `images` is expected to be a list of image URLs.
+    """
     car = {
         "num_imma": num_imma,
         "marque": marque,
@@ -21,7 +25,8 @@ def add_car(num_imma, marque, modele, kilometrage, etat, prix_location):
         "kilometrage": kilometrage,
         "etat": etat,  # 0: available, 1: rented
         "prix_location": prix_location,
-        "tenant": None  # No tenant when the car is available
+        "tenant": None,  # No tenant when the car is available
+        "images": images  # List of image URLs
     }
     cars_collection.insert_one(car)
 
@@ -49,6 +54,7 @@ def get_all_cars():
     for car in cars:
         car['_id'] = str(car['_id'])  # Convert ObjectId to string for JSON serialization
     return cars
+
 
 def rent_car(num_imma, tenant, start_date, end_date):
     """

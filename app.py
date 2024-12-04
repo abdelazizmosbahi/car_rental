@@ -3,24 +3,69 @@ from flask import Flask, request, jsonify, render_template
 from models import get_all_cars
 from models import add_car, cars_collection, return_car, get_renters_with_rented_cars, get_rented_cars_by_tenant,get_non_rented_cars, delete_car, update_car, get_car_by_id, get_all_cars, rent_car
 
+from pymongo import MongoClient
 
-#index html page config
 app = Flask(__name__)
+
+# Connect to MongoDB
+client = MongoClient('mongodb://localhost:27017/')
+db = client['car_rental_db']  # The database for the car rental app
+cars_collection = db['voitures']
 
 @app.route('/')
 def index():
-    print("Rendering the index page")
-    cars = get_all_cars()
+    # Retrieve all cars from the database (or you can filter as needed)
+    cars = list(cars_collection.find())
+    for car in cars:
+        car['_id'] = str(car['_id'])  # Convert ObjectId to string for JSON serialization
     return render_template('index.html', cars=cars)
-#index html page config
+@app.route('/about')
+def about():
+    return render_template('about.html')
 
-app = Flask(__name__)
+@app.route('/blog')
+def blog():
+    return render_template('blog.html')
 
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
+@app.route('/listing')
+def listing():
+    return render_template('listing.html')
+
+@app.route('/main')
+def main():
+    return render_template('main.html')
+
+@app.route('/single')
+def single():
+    return render_template('single.html')
+
+@app.route('/testimonials')
+def testimonials():
+    return render_template('testimonials.html')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+# @app.route('/add_car', methods=['POST'])
+# def add_car_route():
+#     data = request.json
+#     add_car(data['num_imma'], data['marque'], data['modele'], data['kilometrage'], data['etat'], data['prix_location'])
+#     return jsonify({"message": "Car added successfully!"}), 201
 @app.route('/add_car', methods=['POST'])
 def add_car_route():
     data = request.json
-    add_car(data['num_imma'], data['marque'], data['modele'], data['kilometrage'], data['etat'], data['prix_location'])
+    images = data.get('images', [])  # Expecting a list of image URLs
+    add_car(
+        data['num_imma'], data['marque'], data['modele'],
+        data['kilometrage'], data['etat'], data['prix_location'], images
+    )
     return jsonify({"message": "Car added successfully!"}), 201
+
 
 @app.route('/delete_car/<int:num_imma>', methods=['DELETE'])
 def delete_car_route(num_imma):
