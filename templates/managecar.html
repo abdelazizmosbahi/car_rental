@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Management</title>
+    <!-- Include Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Car Management</h2>
+
+        <!-- Button to Open Modal -->
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCarModal">
+            Add New Car
+        </button>
+
+        <!-- Modal for Adding New Car -->
+        <div class="modal fade" id="addCarModal" tabindex="-1" aria-labelledby="addCarModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addCarModalLabel">Add a New Car</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form action="/add_car" method="POST" enctype="multipart/form-data">
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="num_imma">num_imma</label>
+                                <input type="text" class="form-control" id="num_imma" name="num_imma" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="marque"> marque:</label>
+                                <input type="text" class="form-control" id="marque" name="marque" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="modele">Car Model:</label>
+                                <input type="text" class="form-control" id="modele" name="modele" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="kilometrage">Kilometrage:</label>
+                                <input type="number" class="form-control" id="kilometrage" name="kilometrage" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="prix_location">Price per Day:</label>
+                                <input type="number" class="form-control" id="prix_location" name="prix_location" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="images">Car Images:</label>
+                                <input type="file" class="form-control" id="images" name="images" multiple>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">Add Car</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Message -->
+        {% if success_message %}
+            <script>
+                alert("{{ success_message }}");
+            </script>
+        {% endif %}
+
+        <br>
+        <!-- Button to go to the home page -->
+        <p><a href="{{ url_for('index') }}" class="btn btn-secondary btn-sm">Go to Home</a></p>
+
+        <!-- List of Cars -->
+        <h3 class="mt-5">Cars List</h3>
+        <ul id="cars-list" class="list-group">
+            <!-- Cars will be dynamically added here -->
+        </ul>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteCarModal" tabindex="-1" aria-labelledby="deleteCarModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteCarModalLabel">Delete Car</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this car?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" id="confirmDelete">Delete</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div id="error-message" class="text-danger mt-2" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Car Modal -->
+<div class="modal fade" id="updateCarModal" tabindex="-1" aria-labelledby="updateCarModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updateCarModalLabel">Update Car</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="updateCarForm" method="POST">
+                <div class="modal-body">
+                    <!-- Car Registration Number (num_imma) -->
+                    <div class="form-group">
+                        <label for="update-num_imma">Car Registration Number</label>
+                        <input type="text" class="form-control" id="update-num_imma" name="num_imma" required>
+                    </div>
+
+                    <!-- Car Brand (marque) -->
+                    <div class="form-group">
+                        <label for="update-marque">Brand</label>
+                        <input type="text" class="form-control" id="update-marque" name="marque" required>
+                    </div>
+
+                    <!-- Car Model (modele) -->
+                    <div class="form-group">
+                        <label for="update-modele">Model</label>
+                        <input type="text" class="form-control" id="update-modele" name="modele" required>
+                    </div>
+
+                    <!-- Kilometrage -->
+                    <div class="form-group">
+                        <label for="update-kilometrage">Kilometrage</label>
+                        <input type="number" class="form-control" id="update-kilometrage" name="kilometrage" required>
+                    </div>
+
+                    <!-- Price per Day -->
+                    <div class="form-group">
+                        <label for="update-prix_location">Price per Day</label>
+                        <input type="number" class="form-control" id="update-prix_location" name="prix_location" required>
+                    </div>
+
+                    <!-- Car Images -->
+                    <div class="form-group">
+                        <label for="update-images">Car Images</label>
+                        <input type="file" class="form-control" id="update-images" name="images" multiple>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary" id="confirmUpdate">Update Car</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal for Viewing Car Details -->
+<div class="modal fade" id="viewCarModal" tabindex="-1" aria-labelledby="viewCarModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewCarModalLabel">View Car Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Number Plate:</strong> <span id="view-num_imma"></span></p>
+                <p><strong>Brand:</strong> <span id="view-marque"></span></p>
+                <p><strong>Model:</strong> <span id="view-modele"></span></p>
+                <p><strong>Kilometrage:</strong> <span id="view-kilometrage"></span></p>
+                <p><strong>Price per Day:</strong> <span id="view-prix_location"></span></p>
+                <h5>Images:</h5>
+                <ul id="view-images"></ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+    <!-- Include jQuery and Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+        // Fetch cars and display them
+        $.get('/get_all_cars', function(cars) {
+            if (cars.length > 0) {
+                cars.forEach(function(car) {
+                    let carItem = `
+                        <li class="list-group-item">
+                            ${car.num_imma} | ${car.marque} | ${car.modele} | 
+                            <button class="btn btn-info btn-sm float-end mx-2" data-bs-toggle="modal" data-bs-target="#viewCarModal" onclick="viewCar('${car.num_imma}')">View</button>
+                            <button class="btn btn-warning btn-sm float-end mx-2" data-bs-toggle="modal" data-bs-target="#updateCarModal" onclick="updateCar('${car.num_imma}')">Update</button>
+                            <button class="btn btn-danger btn-sm float-end" onclick="deleteCar('${car.num_imma}')">Delete</button>
+                        </li>
+                    `;
+
+                    $('#cars-list').append(carItem);
+                });
+            }
+        });
+
+            // Delete car
+            window.deleteCar = function(num_imma) {
+                $('#confirmDelete').off('click').on('click', function() {
+                    $.ajax({
+                        url: `/delete_car/${num_imma}`,  // Ensure that your backend expects this route
+                        method: 'DELETE',
+                        success: function(response) {
+                            $('#error-message').hide();  // Hide any previous error message
+                            alert(response.message);
+                            location.reload();
+                        },
+                        error: function(xhr, status, error) {
+                            $('#error-message').text('Error: ' + error).show();  // Show error message
+                        }
+                    });
+                });
+            };
+
+
+      // View car details
+window.viewCar = function(num_imma) {
+    $.get(`/get_car/${num_imma}`, function(car) {
+        // Check if the car object is received correctly
+        if (car) {
+            // Populate modal with car details
+            $('#view-num_imma').text(car.num_imma);
+            $('#view-marque').text(car.marque);
+            $('#view-modele').text(car.modele);
+            $('#view-kilometrage').text(car.kilometrage);
+            $('#view-prix_location').text(car.prix_location);
+            $('#view-etat').text(car.etat);  // Show rental status
+            $('#view-images').empty(); // Clear previous images
+
+            // Display the car images
+            if (car.images && car.images.length > 0) {
+                car.images.forEach(function(image) {
+                    $('#view-images').append(`<li><img src="${image}"  style="width:100px; height:50px"></li>`);
+                });
+            } else {
+                $('#view-images').append('<li>No images available</li>');
+            }
+        } else {
+            alert("Car details not found.");
+        }
+    }).fail(function() {
+        alert("Error fetching car details. Please try again.");
+    });
+};
+
+
+
+            // Populate Update Modal with Car Data
+            window.updateCar = function(num_imma) {
+    // Clear previous data in the form
+    $('#updateCarForm')[0].reset();
+
+    // Fetch car details by its registration number (num_imma)
+    $.get(`/get_car/${num_imma}`, function(car) {
+        if (car) {
+            // Populate the modal form with current car data
+            $('#update-num_imma').val(car.num_imma);  // Set the registration number (editable now)
+            $('#update-marque').val(car.marque);  // Set the brand
+            $('#update-modele').val(car.modele);  // Set the model
+            $('#update-kilometrage').val(car.kilometrage);  // Set the kilometrage
+            $('#update-prix_location').val(car.prix_location);  // Set the price per day
+            // Handle the images input (can't pre-fill, so just leave it empty or update with image previews)
+        } else {
+            alert('Car not found!');
+        }
+    }).fail(function(xhr, status, error) {
+        alert('Error retrieving car details: ' + error);
+    });
+
+    // Handle form submission for updating the car
+    $('#updateCarForm').on('submit', function(e) {
+        e.preventDefault();  // Prevent the default form submission
+
+        // Get the updated values from the form
+        let updatedCar = {
+            num_imma: $('#update-num_imma').val(),  // Allow updating num_imma
+            marque: $('#update-marque').val(),
+            modele: $('#update-modele').val(),
+            kilometrage: $('#update-kilometrage').val(),
+            prix_location: $('#update-prix_location').val(),
+            images: $('#update-images')[0].files // Get the files selected by the user
+        };
+
+        // Send the updated data to the backend
+        $.ajax({
+            url: `/update_car/${num_imma}`,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(updatedCar),
+            success: function(response) {
+                alert(response.message);
+                location.reload();  // Reload the page after the update
+            },
+            error: function(xhr, status, error) {
+                alert('Error updating car: ' + error);
+            }
+        });
+    });
+};
+
+
+    });
+    </script>
+    
+</body>
+</html>

@@ -31,6 +31,7 @@ def add_car(num_imma, marque, modele, kilometrage, etat, prix_location, images):
     cars_collection.insert_one(car)
 
 
+
 # Function to delete a car
 def delete_car(num_imma):
     result = cars_collection.delete_one({"num_imma": num_imma})

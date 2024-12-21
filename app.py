@@ -2,6 +2,7 @@ from datetime import datetime
 from flask import Flask, request, jsonify, render_template
 from models import get_all_cars
 from models import add_car, cars_collection, return_car, get_renters_with_rented_cars, get_rented_cars_by_tenant,get_non_rented_cars, delete_car, update_car, get_car_by_id, get_all_cars, rent_car
+from flask import request, render_template, redirect, url_for
 
 from pymongo import MongoClient
 
@@ -47,50 +48,92 @@ def single():
 def testimonials():
     return render_template('testimonials.html')
 
-if __name__ == '__main__':
-    app.run(debug=True)
 
+@app.route('/managecar')
+def managecar():
+    return render_template('managecar.html')
 
-# @app.route('/add_car', methods=['POST'])
-# def add_car_route():
-#     data = request.json
-#     add_car(data['num_imma'], data['marque'], data['modele'], data['kilometrage'], data['etat'], data['prix_location'])
-#     return jsonify({"message": "Car added successfully!"}), 201
 @app.route('/add_car', methods=['POST'])
 def add_car_route():
-    data = request.json
-    images = data.get('images', [])  # Expecting a list of image URLs
-    add_car(
-        data['num_imma'], data['marque'], data['modele'],
-        data['kilometrage'], data['etat'], data['prix_location'], images
-    )
-    return jsonify({"message": "Car added successfully!"}), 201
+    num_imma = request.form.get('num_imma')
+    marque = request.form.get('marque')
+    modele = request.form.get('modele')
+    kilometrage = request.form.get('kilometrage')
+    prix_location = request.form.get('prix_location')
+
+    # Handling images
+    images = []
+    image_files = request.files.getlist('images')
+    for img in image_files:
+        img.save(f"static/images/{img.filename}")  # Save image to static directory
+        images.append(f"images/{img.filename}")   # Store relative path
+
+    add_car(num_imma, marque, modele, kilometrage, 0, prix_location, images)
+    
+    # Render the same form page with success message
+    return render_template('managecar.html', success_message="Car added successfully!")
 
 
-@app.route('/delete_car/<int:num_imma>', methods=['DELETE'])
-def delete_car_route(num_imma):
-    if delete_car(num_imma):
-        return jsonify({"message": "Car deleted successfully!"})
-    return jsonify({"error": "Car not found"}), 404
 
-@app.route('/update_car/<int:num_imma>', methods=['PUT'])
-def update_car_route(num_imma):
-    updates = request.json
-    if update_car(num_imma, updates):
-        return jsonify({"message": "Car updated successfully!"})
-    return jsonify({"error": "Car not found"}), 404
+@app.route('/delete_car/<string:num_imma>', methods=['DELETE'])
+def delete_car(num_imma):
+    try:
+        result = cars_collection.delete_one({"num_imma": num_imma})  # Ensure you are matching by num_imma
+        if result.deleted_count > 0:
+            return jsonify({"message": "Car deleted successfully!"}), 200
+        else:
+            return jsonify({"message": "Car not found!"}), 404
+    except Exception as e:
+        return jsonify({"message": "Error deleting car", "error": str(e)}), 500
 
-@app.route('/get_car/<int:num_imma>', methods=['GET'])
-def get_car_by_id_route(num_imma):
-    car = get_car_by_id(num_imma)
+@app.route('/update_car/<string:num_imma>', methods=['PUT'])
+def update_car(num_imma):
+    data = request.get_json()
+    updated_data = {
+        "num_imma": data.get('num_imma'),  # Allow updating num_imma
+        "marque": data.get('marque'),
+        "modele": data.get('modele'),
+        "kilometrage": data.get('kilometrage'),
+        "prix_location": data.get('prix_location'),
+        "images": data.get('images')
+    }
+    
+    # You might want to ensure that the new `num_imma` is unique
+    if cars_collection.find_one({"num_imma": updated_data["num_imma"]}):
+        return jsonify({"message": "Car with this registration number already exists!"}), 400
+
+    # Update the car in the database
+    result = cars_collection.update_one({"num_imma": num_imma}, {"$set": updated_data})
+
+    if result.modified_count > 0:
+        return jsonify({"message": "Car updated successfully!"}), 200
+    else:
+        return jsonify({"message": "No changes made."}), 200
+
+
+@app.route('/get_car/<string:num_imma>', methods=['GET'])
+def get_car(num_imma):
+    car = cars_collection.find_one({"num_imma": num_imma})
     if car:
-        return jsonify(car)
-    return jsonify({"error": "Car not found"}), 404
+        # Remove '_id' from the returned car to avoid returning MongoDB's internal ID field
+        car["_id"] = str(car["_id"])  # Convert ObjectId to string for JSON compatibility
+        return jsonify(car), 200
+    else:
+        return jsonify({"message": "Car not found!"}), 404
+
+
 
 @app.route('/get_all_cars', methods=['GET'])
 def get_all_cars_route():
     cars = get_all_cars()
-    return jsonify(cars)
+    
+    # Check if we got the cars, and log the output
+    if cars:
+        print(f"Fetched {len(cars)} cars")  # Debugging line
+        return jsonify(cars)
+    else:
+        return jsonify({"message": "No cars found."}), 404
+
 
 @app.route('/rent_car/<int:num_imma>', methods=['PUT'])
 def rent_car_route(num_imma):
@@ -165,4 +208,7 @@ def return_car_route(num_imma):
     return jsonify({"error": "Car not found or not rented."}), 404
 
 if __name__ == '__main__':
+    print("Registered Routes:")
+    for rule in app.url_map.iter_rules():
+        print(rule)
     app.run(debug=True)
