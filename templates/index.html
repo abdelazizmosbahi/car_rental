@@ -214,44 +214,83 @@
 
       
 
-    <div class="site-section bg-light">
-      <div class="container">
-        <div class="row">
-          <div class="col-lg-7">
-            <h2 class="section-heading"><strong>Car Listings</strong></h2>
-            <p class="mb-5">Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p>    
-          </div>
-        </div>
-        <div class="row">
-          {% for car in cars %}
-          <div class="col-md-6 col-lg-4 mb-4">
-            <div class="listing d-block align-items-stretch">
-              <div class="listing-img h-100 mr-4">
-                <!-- Use the car's first image URL from the 'images' field -->
-                <img src="{{ url_for('static', filename='images/' + car['images'][0]) }}" alt="Image" class="img-fluid">
-              </div>
-              <div class="listing-contents h-100">
-                <h3>{{ car['marque'] }} {{ car['modele'] }}</h3>
-                <div class="rent-price">
-                  <strong>${{ car['prix_location'] }}</strong><span class="mx-1">/</span>day
+      <div class="site-section bg-light">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-7">
+                    <h2 class="section-heading"><strong>Our Cars Listings</strong></h2>
+                    <p class="mb-5">All our cars</p>
                 </div>
-                <div class="d-block d-md-flex mb-3 border-bottom pb-3">
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Kilometrage:</span>
-                    <span class="number">{{ car['kilometrage'] }} km</span>
-                  </div>
-                </div>
-                <div>
-                  <p><a href="#" class="btn btn-primary btn-sm">Rent Now</a></p>
-                </div>
-              </div>
             </div>
-          </div>
-          {% endfor %}
+            <div class="row">
+                {% for car in cars %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="listing d-block align-items-stretch">
+                        <div class="listing-img h-100 mr-4" style="position: relative;">
+                            <!-- Display the first image initially -->
+                            <img 
+                                src="data:image/jpeg;base64,{{ car['images'][0] }}" 
+                                alt="Car Image" 
+                                class="img-fluid car-image" 
+                                id="car-image-{{ loop.index }}" 
+                                data-images="{{ car['images'] | join(',') }}" 
+                                data-current-index="0" 
+                                style="width: 300px; height: 200px; object-fit: cover;">
+    
+                            <!-- Left navigation button -->
+                            <button 
+                                class="btn btn-secondary btn-sm" 
+                                style="position: absolute; top: 50%; left: 5px; transform: translateY(-50%); z-index: 10; background-color: rgba(128, 128, 128, 0.6); border: none;"
+                                onclick="navigateCarImage('{{ loop.index }}', -1)">
+                                &#8249;
+                            </button>
+    
+                            <!-- Right navigation button -->
+                            <button 
+                                class="btn btn-secondary btn-sm" 
+                                style="position: absolute; top: 50%; right: 5px; transform: translateY(-50%); z-index: 10; background-color: rgba(128, 128, 128, 0.6); border: none;"
+                                onclick="navigateCarImage('{{ loop.index }}', 1)">
+                                &#8250;
+                            </button>
+                        </div>
+                        <div class="listing-contents h-100">
+                            <h3>{{ car['marque'] }} <br>{{ car['modele'] }}</h3>
+                            <div class="rent-price">
+                                <strong>${{ car['prix_location'] }}</strong><span class="mx-1">/</span>day
+                            </div>
+                            <div class="d-block d-md-flex mb-3 border-bottom pb-3">
+                                <div class="listing-feature pr-4">
+                                    <span class="caption">Kilometrage:</span>
+                                    <span class="number">{{ car['kilometrage'] }} km</span>
+                                </div>
+                            </div>
+                            <div>
+                                <p><a href="#" class="btn btn-primary btn-sm">Rent Now</a></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
-        
-      </div>
     </div>
+    
+    <script>
+        // Function to navigate through the car's images
+        function navigateCarImage(carIndex, direction) {
+            const imgElement = $(`#car-image-${carIndex}`);
+            const images = imgElement.data('images').split(','); // Get the array of images
+            let currentIndex = parseInt(imgElement.attr('data-current-index')); // Current index
+    
+            // Calculate new index
+            currentIndex = (currentIndex + direction + images.length) % images.length;
+    
+            // Update the image src and current index
+            imgElement.attr('src', `data:image/jpeg;base64,${images[currentIndex]}`);
+            imgElement.attr('data-current-index', currentIndex);
+        }
+    </script>
+    
 
     <div class="site-section">
       <div class="container">
@@ -474,7 +513,7 @@
               <div class="border-top pt-5">
                 <p>
               <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
-              Copyright &copy;<script>document.write(new Date().getFullYear());</script> All rights reserved |<i class="icon-heart text-danger" aria-hidden="true"></i> by <a href="https://colorlib.com" target="_blank" >AZIZ MOSBAHI</a>
+              Copyright &copy;<script>document.write(new Date().getFullYear());</script> All rights reserved |<i class="icon-heart text-danger" aria-hidden="true"></i> by <a  target="_blank" >AZIZ MOSBAHI</a>
               <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
               </p>
               </div>
@@ -491,39 +530,3 @@
   </body>
 
 </html>
-
-
-
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Car Rental - All Cars</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-
-    <h1>All Available Cars</h1>
-    <div class="car-list">
-        {% if cars %}
-            <ul>
-                {% for car in cars %}
-                    <li>
-                        <h2>{{ car['marque'] }} {{ car['modele'] }}</h2>
-                        <p><strong>Numéro d'immatriculation:</strong> {{ car['num_imma'] }}</p>
-                        <p><strong>Prix Location:</strong> ${{ car['prix_location'] }}</p>
-                        <p><strong>Kilométrage:</strong> {{ car['kilometrage'] }} km</p>
-                        <p><strong>Etat:</strong> {% if car['etat'] == 0 %} Available {% else %} Rented {% endif %}</p>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No cars available at the moment.</p>
-        {% endif %}
-    </div>
-
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-</body>
-</html> -->
-

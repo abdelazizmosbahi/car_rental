@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Client Dashboard</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <!-- Link to stylesheets -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='fonts/icomoon/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-datepicker.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.fancybox.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/owl.carousel.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/owl.theme.default.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fonts/flaticon/font/flaticon.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/aos.css') }}">
+
+    <!-- MAIN CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Link to JavaScript files -->
+    <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/owl.carousel.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery.sticky.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery.waypoints.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery.animateNumber.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery.fancybox.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery.easing.1.3.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap-datepicker.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/aos.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</head>
+
+
+  <body>
+
+    
+    <div class="site-wrap" id="home-section">
+
+      <div class="site-mobile-menu site-navbar-target">
+        <div class="site-mobile-menu-header">
+          <div class="site-mobile-menu-close mt-3">
+            <span class="icon-close2 js-menu-toggle"></span>
+          </div>
+        </div>
+        <div class="site-mobile-menu-body"></div>
+      </div>
+
+
+
+      <header class="site-navbar site-navbar-target" role="banner">
+
+        <div class="container">
+          <div class="row align-items-center position-relative">
+
+            <div class="col-3">
+              <div class="site-logo">
+                <a href="{{ url_for('dashboard') }}"><strong>CarRental</strong></a>
+              </div>
+            </div>
+
+            <div class="col-9  text-right">
+              
+              <span class="d-inline-block d-lg-none"><a href="#" class=" site-menu-toggle js-menu-toggle py-5 "><span class="icon-menu h3 text-black"></span></a></span>
+
+              <nav class="site-navigation text-right ml-auto d-none d-lg-block" role="navigation">
+                <ul class="site-menu main-menu js-clone-nav ml-auto">
+                    <li class="active"><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
+                    <li><a href="{{ url_for('listing') }}" class="nav-link">Listing</a></li>
+                    <li><a href="{{ url_for('testimonials') }}" class="nav-link">Testimonials</a></li>
+                    <li><a href="{{ url_for('blog') }}" class="nav-link">Blog</a></li>
+                    <li><a href="{{ url_for('about') }}" class="nav-link">About</a></li>
+                    <li><a href="{{ url_for('contact') }}" class="nav-link">Contact</a></li>
+                    <li><a href="{{ url_for('logout') }}" class="nav-link">logout</a></li>
+<!-- Check if tenant is logged in -->
+{% if tenant['tenant_id'] %}
+  <p>Welcome, {{ tenant['username'] }}!</p>  <!-- Access username stored in session -->
+{% else %}
+  <p>Not logged in.</p>
+{% endif %}
+
+                </ul>
+            </nav>            
+            </div>
+
+            
+          </div>
+        </div>
+
+      </header>
+
+      
+<br><br><br>
+
+      <div  class="site-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-7">
+                    <h2 class="section-heading"><strong>Car Listings</strong></h2>
+                    <p class="mb-5">Available cars</p>
+                </div>
+            </div>
+            <div class="row">
+                {% for car in cars %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="listing d-block align-items-stretch">
+                        <div class="listing-img h-100 mr-4" style="position: relative;">
+                            <!-- Display the first image initially -->
+                            <img 
+                                src="data:image/jpeg;base64,{{ car['images'][0] }}" 
+                                alt="Car Image" 
+                                class="img-fluid car-image" 
+                                id="car-image-{{ loop.index }}" 
+                                data-images="{{ car['images'] | join(',') }}" 
+                                data-current-index="0" 
+                                style="width: 300px; height: 200px; object-fit: cover;">
+    
+                            <!-- Left navigation button -->
+                            <button 
+                                class="btn btn-secondary btn-sm" 
+                                style="position: absolute; top: 50%; left: 5px; transform: translateY(-50%); z-index: 10; background-color: rgba(128, 128, 128, 0.6); border: none;"
+                                onclick="navigateCarImage('{{ loop.index }}', -1)">
+                                &#8249;
+                            </button>
+    
+                            <!-- Right navigation button -->
+                            <button 
+                                class="btn btn-secondary btn-sm" 
+                                style="position: absolute; top: 50%; right: 5px; transform: translateY(-50%); z-index: 10; background-color: rgba(128, 128, 128, 0.6); border: none;"
+                                onclick="navigateCarImage('{{ loop.index }}', 1)">
+                                &#8250;
+                            </button>
+                        </div>
+                        <div class="listing-contents h-100">
+                            <h3>{{ car['marque'] }} <br>{{ car['modele'] }}</h3>
+                            <div class="rent-price">
+                                <strong>${{ car['prix_location'] }}</strong><span class="mx-1">/</span>day
+                            </div>
+                            <div class="d-block d-md-flex mb-3 border-bottom pb-3">
+                                <div class="listing-feature pr-4">
+                                    <span class="caption">Kilometrage:</span>
+                                    <span class="number">{{ car['kilometrage'] }} km</span>
+                                </div>
+                                <!-- In dashboard.html -->
+
+                            </div>
+                           <!-- Rent Now Button -->
+                                <!-- Rent Now Button -->
+                                <div>
+                                    <p>
+                                        <a href="#" class="btn btn-primary btn-sm" onclick="openRentCarModal('{{ car['num_imma'] }}')">
+                                            Rent Now
+                                        </a>
+                                    </p>
+                                </div>
+
+
+                               <!-- Modal for Selecting Start and End Dates -->
+<div id="rentCarModal" class="modal">
+    <div class="modal-content">
+        <h4>Rent Car</h4>
+        <form id="rentCarForm">
+            <label for="start_date">Start Date:</label>
+            <input type="date" id="start_date" name="start_date" required><br><br>
+            <label for="end_date">End Date:</label>
+            <input type="date" id="end_date" name="end_date" required><br><br>
+            <button type="button" onclick="rentCar()">Rent Now</button>
+            <button type="button" onclick="closeRentCarModal()">Cancel</button>
+        </form>
+    </div>
+</div>
+
+
+
+                                <!-- Include Bootstrap JS (if not already included) -->
+                                <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+                                <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
+                            
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Function to navigate through the car's images
+        function navigateCarImage(carIndex, direction) {
+            const imgElement = $(`#car-image-${carIndex}`);
+            const images = imgElement.data('images').split(','); // Get the array of images
+            let currentIndex = parseInt(imgElement.attr('data-current-index')); // Current index
+    
+            // Calculate new index
+            currentIndex = (currentIndex + direction + images.length) % images.length;
+    
+            // Update the image src and current index
+            imgElement.attr('src', `data:image/jpeg;base64,${images[currentIndex]}`);
+            imgElement.attr('data-current-index', currentIndex);
+        }
+
+
+
+        let selectedCarNumImma;
+    let selectedTenantId;
+
+  // Function to open the rent car modal
+function openRentCarModal(num_imma) {
+    document.getElementById("rentCarModal").style.display = "block";
+    window.currentCarNumImma = num_imma;  // Store the car number in global variable
+}
+
+// Function to close the rent car modal
+function closeRentCarModal() {
+    document.getElementById("rentCarModal").style.display = "none";
+}
+
+// Function to rent a car
+function rentCar() {
+    const start_date = document.getElementById("start_date").value;
+    const end_date = document.getElementById("end_date").value;
+    const tenant_id = "{{ tenant['_id'] }}"; // Get tenant id from session
+
+    if (!start_date || !end_date) {
+        alert("Please select both start and end dates.");
+        return;
+    }
+
+    const data = {
+        _id: tenant_id,
+        username: "{{ tenant['username'] }}",  // Ensure tenant username is available
+        start_date: start_date,
+        end_date: end_date
+    };
+
+    // Log the data to ensure it's correct
+    console.log("Data being sent to the server:", data);
+
+    // Make the PUT request to rent the car
+    fetch(`/rent_car/${window.currentCarNumImma}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Network response was not ok");
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.message) {
+            alert(data.message);  // Car rented successfully
+            closeRentCarModal();  // Close modal after success
+        } else {
+            alert(data.error);  // Handle error
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        alert("Something went wrong. Please try again.");
+    });
+}
+
+    </script>
+    </div>
+  </body>
+
+</html>
+

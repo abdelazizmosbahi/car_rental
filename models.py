@@ -8,6 +8,8 @@ cars_collection = db['voitures']
 
 # Cars collection
 cars_collection = db['voitures']
+tenant_collection = db['tenant']  # The tenant collection
+
 # Directly test the MongoDB query
 non_rented_cars = cars_collection.find({"etat": 0})
 print(list(non_rented_cars))  # Print the results of the query
@@ -57,6 +59,7 @@ def get_all_cars():
     return cars
 
 
+# Rent a car function
 def rent_car(num_imma, tenant, start_date, end_date):
     """
     Updates a car's state to 'rented' and adds tenant information along with the rental period.
@@ -66,20 +69,20 @@ def rent_car(num_imma, tenant, start_date, end_date):
         "start_date": start_date,
         "end_date": end_date
     }
+
+    print(f"Attempting to rent car with num_imma: {num_imma} and rental info: {rental_info}")  # Debug print
+
     result = cars_collection.update_one(
         {"num_imma": num_imma, "etat": 0},  # Ensure the car is available
         {"$set": {"etat": 1, **rental_info}}
     )
-    return result.matched_count > 0  # True if the car was found and updated
 
-def return_car(num_imma):
-    result = cars_collection.update_one(
-        {"num_imma": num_imma, "etat": 1},  # Ensure the car is currently rented
-        {"$set": {"etat": 0, "tenant": None, "start_date": None, "end_date": None}}
-    )
-    return result.matched_count > 0  # True if the car was found and updated
-
-
+    if result.matched_count > 0:
+        print("Car rented successfully!")  # Debug print
+        return True
+    else:
+        print("Car not available or not found.")  # Debug print
+        return False
 def get_rented_cars_by_tenant(tenant_id):
     """
     Retrieves all cars rented by a specific tenant based on tenant's id_loc.

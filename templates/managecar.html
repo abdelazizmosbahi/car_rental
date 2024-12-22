@@ -75,6 +75,7 @@
         <br>
         <!-- Button to go to the home page -->
         <p><a href="{{ url_for('index') }}" class="btn btn-secondary btn-sm">Go to Home</a></p>
+        <p><a href="{{ url_for('signup') }}" class="btn btn-secondary btn-sm">Go to signup</a></p>
 
         <!-- List of Cars -->
         <h3 class="mt-5">Cars List</h3>
@@ -83,25 +84,25 @@
         </ul>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteCarModal" tabindex="-1" aria-labelledby="deleteCarModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteCarModalLabel">Delete Car</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    Are you sure you want to delete this car?
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-danger" id="confirmDelete">Delete</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-                <div id="error-message" class="text-danger mt-2" style="display: none;"></div>
+  <!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteCarModal" tabindex="-1" aria-labelledby="deleteCarModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteCarModalLabel">Delete Car</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <div class="modal-body">
+                Are you sure you want to delete this car?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="confirmDelete">Delete</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+            <div id="error-message" class="text-danger mt-2" style="display: none;"></div>
         </div>
     </div>
+</div>
 
     <!-- Update Car Modal -->
 <div class="modal fade" id="updateCarModal" tabindex="-1" aria-labelledby="updateCarModalLabel" aria-hidden="true">
@@ -113,11 +114,6 @@
             </div>
             <form id="updateCarForm" method="POST">
                 <div class="modal-body">
-                    <!-- Car Registration Number (num_imma) -->
-                    <div class="form-group">
-                        <label for="update-num_imma">Car Registration Number</label>
-                        <input type="text" class="form-control" id="update-num_imma" name="num_imma" required>
-                    </div>
 
                     <!-- Car Brand (marque) -->
                     <div class="form-group">
@@ -145,9 +141,11 @@
 
                     <!-- Car Images -->
                     <div class="form-group">
-                        <label for="update-images">Car Images</label>
+                        <label for="images">Car Images:</label>
                         <input type="file" class="form-control" id="update-images" name="images" multiple>
+                        <div id="imagePreviewContainer" style="margin-top: 10px;"></div>  <!-- Container for Image Previews -->
                     </div>
+                    
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-primary" id="confirmUpdate">Update Car</button>
@@ -173,8 +171,10 @@
                 <p><strong>Model:</strong> <span id="view-modele"></span></p>
                 <p><strong>Kilometrage:</strong> <span id="view-kilometrage"></span></p>
                 <p><strong>Price per Day:</strong> <span id="view-prix_location"></span></p>
-                <h5>Images:</h5>
-                <ul id="view-images"></ul>
+               <div id="view-images" class="d-flex flex-wrap">
+    <!-- Images will be dynamically added here -->
+</div>
+
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -196,12 +196,14 @@
             if (cars.length > 0) {
                 cars.forEach(function(car) {
                     let carItem = `
-                        <li class="list-group-item">
-                            ${car.num_imma} | ${car.marque} | ${car.modele} | 
-                            <button class="btn btn-info btn-sm float-end mx-2" data-bs-toggle="modal" data-bs-target="#viewCarModal" onclick="viewCar('${car.num_imma}')">View</button>
-                            <button class="btn btn-warning btn-sm float-end mx-2" data-bs-toggle="modal" data-bs-target="#updateCarModal" onclick="updateCar('${car.num_imma}')">Update</button>
-                            <button class="btn btn-danger btn-sm float-end" onclick="deleteCar('${car.num_imma}')">Delete</button>
-                        </li>
+                      <!-- List of Cars with Delete Button -->
+<li class="list-group-item">
+    ${car.num_imma} | ${car.marque} | ${car.modele} | 
+    <button class="btn btn-info btn-sm float-end mx-2" data-bs-toggle="modal" data-bs-target="#viewCarModal" onclick="viewCar('${car.num_imma}')">View</button>
+    <button class="btn btn-warning btn-sm float-end mx-2" data-bs-toggle="modal" data-bs-target="#updateCarModal" onclick="updateCar('${car.num_imma}')">Update</button>
+    <button class="btn btn-danger btn-sm float-end" data-bs-toggle="modal" data-bs-target="#deleteCarModal" onclick="setDeleteCar('${car.num_imma}')">Delete</button>
+</li>
+
                     `;
 
                     $('#cars-list').append(carItem);
@@ -209,59 +211,60 @@
             }
         });
 
-            // Delete car
-            window.deleteCar = function(num_imma) {
-                $('#confirmDelete').off('click').on('click', function() {
-                    $.ajax({
-                        url: `/delete_car/${num_imma}`,  // Ensure that your backend expects this route
-                        method: 'DELETE',
-                        success: function(response) {
-                            $('#error-message').hide();  // Hide any previous error message
-                            alert(response.message);
-                            location.reload();
-                        },
-                        error: function(xhr, status, error) {
-                            $('#error-message').text('Error: ' + error).show();  // Show error message
-                        }
-                    });
-                });
-            };
+        $(document).ready(function() {
+    // Declare setDeleteCar function inside $(document).ready()
+    window.setDeleteCar = function(num_imma) {
+        console.log("Car to delete: " + num_imma);  // Debugging to check if num_imma is set
+        $('#confirmDelete').off('click').on('click', function() {
+            console.log("Delete button clicked for car: " + num_imma);  // Debugging to check if button click works
+            deleteCar(num_imma);  // Call deleteCar function
+        });
+    };
 
-
-      // View car details
-window.viewCar = function(num_imma) {
-    $.get(`/get_car/${num_imma}`, function(car) {
-        // Check if the car object is received correctly
-        if (car) {
-            // Populate modal with car details
-            $('#view-num_imma').text(car.num_imma);
-            $('#view-marque').text(car.marque);
-            $('#view-modele').text(car.modele);
-            $('#view-kilometrage').text(car.kilometrage);
-            $('#view-prix_location').text(car.prix_location);
-            $('#view-etat').text(car.etat);  // Show rental status
-            $('#view-images').empty(); // Clear previous images
-
-            // Display the car images
-            if (car.images && car.images.length > 0) {
-                car.images.forEach(function(image) {
-                    $('#view-images').append(`<li><img src="${image}"  style="width:100px; height:50px"></li>`);
-                });
-            } else {
-                $('#view-images').append('<li>No images available</li>');
+    // Declare deleteCar function inside $(document).ready()
+    window.deleteCar = function(num_imma) {
+        console.log("Sending DELETE request for car: " + num_imma);  // Debugging request
+        $.ajax({
+            url: `/delete_car/${num_imma}`,  // Backend route for deletion
+            method: 'DELETE',
+            success: function(response) {
+                $('#error-message').hide();  // Hide any previous error message
+                alert(response.message);  // Show success message
+                location.reload();  // Reload the page after the delete
+            },
+            error: function(xhr, status, error) {
+                console.log("Error deleting car:", error);  // Log any errors
+                $('#error-message').text('Error: ' + error).show();  // Show error message if deletion fails
             }
-        } else {
-            alert("Car details not found.");
-        }
-    }).fail(function() {
-        alert("Error fetching car details. Please try again.");
+        });
+    };
+});
+
+
+
+
+
+     // View car details
+window.viewCar = function (num_imma) {
+    $.get(`/get_car/${num_imma}`, function (car) {
+        $('#view-marque').text(car.marque);
+        $('#view-modele').text(car.modele);
+        $('#view-kilometrage').text(car.kilometrage);
+        $('#view-prix_location').text(car.prix_location);
+        $('#view-etat').text(car.etat ? "Rented" : "Available");
+
+        // Display images
+        $('#view-images').empty();
+        car.images.forEach(function (image) {
+            $('#view-images').append(
+                `<li><img src="${image}" class="img-fluid" style="width:100px; margin:5px;"></li>`
+            );
+        });
     });
 };
 
-
-
-            // Populate Update Modal with Car Data
-            window.updateCar = function(num_imma) {
+// Populate Update Modal with Car Data
+window.updateCar = function(num_imma) {
     // Clear previous data in the form
     $('#updateCarForm')[0].reset();
 
@@ -269,12 +272,26 @@ window.viewCar = function(num_imma) {
     $.get(`/get_car/${num_imma}`, function(car) {
         if (car) {
             // Populate the modal form with current car data
-            $('#update-num_imma').val(car.num_imma);  // Set the registration number (editable now)
             $('#update-marque').val(car.marque);  // Set the brand
             $('#update-modele').val(car.modele);  // Set the model
             $('#update-kilometrage').val(car.kilometrage);  // Set the kilometrage
             $('#update-prix_location').val(car.prix_location);  // Set the price per day
-            // Handle the images input (can't pre-fill, so just leave it empty or update with image previews)
+
+            // Store the old images in a variable to be sent back if no new images are selected
+            window.oldImages = car.images || [];
+
+            // Display current car images (if any) - optionally handle image previews
+            if (car.images && car.images.length > 0) {
+                let imagePreviewContainer = $('#imagePreviewContainer');
+                imagePreviewContainer.empty(); // Clear previous previews
+                car.images.forEach(function(image) {
+                    const imgElement = `<img src="data:image/jpeg;base64,${image}" alt="Car Image" class="img-thumbnail" style="max-width: 100px;">`;
+                    imagePreviewContainer.append(imgElement);
+                });
+            } else {
+                // If no images exist, you can leave the preview container empty
+                $('#imagePreviewContainer').empty();
+            }
         } else {
             alert('Car not found!');
         }
@@ -288,30 +305,56 @@ window.viewCar = function(num_imma) {
 
         // Get the updated values from the form
         let updatedCar = {
-            num_imma: $('#update-num_imma').val(),  // Allow updating num_imma
             marque: $('#update-marque').val(),
             modele: $('#update-modele').val(),
             kilometrage: $('#update-kilometrage').val(),
             prix_location: $('#update-prix_location').val(),
-            images: $('#update-images')[0].files // Get the files selected by the user
+            images: []  // Initialize the images array
         };
 
-        // Send the updated data to the backend
-        $.ajax({
-            url: `/update_car/${num_imma}`,
-            method: 'PUT',
-            contentType: 'application/json',
-            data: JSON.stringify(updatedCar),
-            success: function(response) {
-                alert(response.message);
-                location.reload();  // Reload the page after the update
-            },
-            error: function(xhr, status, error) {
-                alert('Error updating car: ' + error);
+        // Handle the images input (convert files to base64)
+        const files = $('#update-images')[0].files;
+        if (files.length > 0) {
+            // Convert each selected file to base64
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const reader = new FileReader();
+                reader.onloadend = function() {
+                    updatedCar.images.push(reader.result.split(',')[1]);  // Store only base64 part of the string
+                    if (updatedCar.images.length === files.length) {
+                        // Send the updated data to the backend once all images are converted
+                        updateCarData(updatedCar, num_imma);
+                    }
+                };
+                reader.readAsDataURL(file);  // Convert image to base64
             }
-        });
+        } else {
+            // If no new images are selected, retain the old images
+            updatedCar.images = window.oldImages;  // Retain the old images
+            updateCarData(updatedCar, num_imma);
+        }
     });
 };
+
+// Function to update the car data in the backend
+function updateCarData(updatedCar, num_imma) {
+    $.ajax({
+        url: `/update_car/${num_imma}`,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify(updatedCar),
+        success: function(response) {
+            alert(response.message);
+            location.reload();  // Reload the page after the update
+        },
+        error: function(xhr, status, error) {
+            alert('Error updating car: ' + error);
+        }
+    });
+}
+
+
+
 
 
     });
