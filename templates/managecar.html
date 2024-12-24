@@ -6,15 +6,18 @@
     <title>Car Management</title>
     <!-- Include Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons CDN -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 </head>
 <body>
+
     <div class="container mt-5">
         <h2>Car Management</h2>
 
-        <!-- Button to Open Modal -->
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCarModal">
-            Add New Car
-        </button>
+<!-- Button with an Add Icon -->
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCarModal">
+    <i class="bi bi-plus-lg"></i> 
+</button>
 
         <!-- Modal for Adding New Car -->
         <div class="modal fade" id="addCarModal" tabindex="-1" aria-labelledby="addCarModalLabel" aria-hidden="true">
@@ -72,16 +75,32 @@
             </script>
         {% endif %}
 
-        <br>
-        <!-- Button to go to the home page -->
-        <p><a href="{{ url_for('index') }}" class="btn btn-secondary btn-sm">Go to Home</a></p>
-        <p><a href="{{ url_for('signup') }}" class="btn btn-secondary btn-sm">Go to signup</a></p>
+
+
+         <!-- Success and error alert messages -->
+         <div id="successMessage" class="alert alert-success d-none" role="alert">
+            Car returned successfully!
+        </div>
+        <div id="errorMessage" class="alert alert-danger d-none" role="alert">
+            Something went wrong. Please try again.
+        </div>
 
         <!-- List of Cars -->
         <h3 class="mt-5">Cars List</h3>
-        <ul id="cars-list" class="list-group">
-            <!-- Cars will be dynamically added here -->
-        </ul>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Car Number</th>
+                    <th>Marque</th>
+                    <th>Modele</th>
+                    <th>Status</th>
+                    <th>Tenant Info</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="cars-list"></tbody>
+        </table>
+        
     </div>
 
   <!-- Delete Confirmation Modal -->
@@ -183,43 +202,87 @@
     </div>
 </div>
 
-
+<!-- Modal for Returning Car -->
+<div class="modal fade" id="returnCarModal" tabindex="-1" aria-labelledby="returnCarModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="returnCarModalLabel">Return Car</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="returnCarInfo">Rental Fees: </p>
+                <p id="carMessage">Are you sure you want to return this car?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmReturnBtn">Return Car</button>
+            </div>
+        </div>
+    </div>
+</div>
 
     <!-- Include jQuery and Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        $(document).ready(function() {
-        // Fetch cars and display them
-        $.get('/get_all_cars', function(cars) {
-            if (cars.length > 0) {
-                cars.forEach(function(car) {
-                    let carItem = `
-                      <!-- List of Cars with Delete Button -->
-<li class="list-group-item">
-    ${car.num_imma} | ${car.marque} | ${car.modele} | 
-    <button class="btn btn-info btn-sm float-end mx-2" data-bs-toggle="modal" data-bs-target="#viewCarModal" onclick="viewCar('${car.num_imma}')">View</button>
-    <button class="btn btn-warning btn-sm float-end mx-2" data-bs-toggle="modal" data-bs-target="#updateCarModal" onclick="updateCar('${car.num_imma}')">Update</button>
-    <button class="btn btn-danger btn-sm float-end" data-bs-toggle="modal" data-bs-target="#deleteCarModal" onclick="setDeleteCar('${car.num_imma}')">Delete</button>
-</li>
+  // Update the list of cars with a "Return Car" button for rented cars
+  $(document).ready(function() {
+    // Fetch cars and display them
+    $.get('/get_all_cars', function(cars) {
+        if (cars.length > 0) {
+            cars.forEach(function(car) {
+                let carRow = `
+                    <tr>
+                        <td>${car.num_imma}</td>
+                        <td>${car.marque}</td>
+                        <td>${car.modele}</td>
+                        <td>${car.etat === 1 ? 'Rented' : 'Available'}</td>
+                        <td>${car.etat === 1 ? `Tenant: ${car.tenant.username}, Start Date: ${car.start_date}, End Date: ${car.end_date}` : ''}</td>
+                        <td>
+                            <!-- View Button with Icon -->
+                            <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#viewCarModal" onclick="viewCar('${car.num_imma}')">
+                                <i class="bi bi-eye"></i> <!-- View Icon -->
+                            </button>
 
-                    `;
+                            <!-- Edit Button with Icon -->
+                            <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#updateCarModal" onclick="updateCar('${car.num_imma}')">
+                                <i class="bi bi-pencil-square"></i> <!-- Edit Icon -->
+                            </button>
 
-                    $('#cars-list').append(carItem);
+                            <!-- Delete Button with Icon -->
+                            <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteCarModal" onclick="setDeleteCar('${car.num_imma}')">
+                                <i class="bi bi-trash"></i> <!-- Delete Icon -->
+                            </button>
+
+                            ${car.etat === 1 ? `
+                                <!-- Return Button with Icon -->
+                                <button class="btn btn-success btn-sm" onclick="openReturnCarModal('${car.num_imma}', '${car.start_date}', '${car.end_date}', ${car.prix_location})">
+                                    <i class="bi bi-arrow-return-left"></i> <!-- Return Icon -->
+                                </button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `;
+                $('#cars-list').append(carRow);
+            });
+        }
+    });
+});
+
+
+
+
+       $(document).ready(function() {
+            // Declare setDeleteCar function inside $(document).ready()
+            window.setDeleteCar = function(num_imma) {
+                console.log("Car to delete: " + num_imma);  // Debugging to check if num_imma is set
+                $('#confirmDelete').off('click').on('click', function() {
+                    console.log("Delete button clicked for car: " + num_imma);  // Debugging to check if button click works
+                    deleteCar(num_imma);  // Call deleteCar function
                 });
-            }
-        });
-
-        $(document).ready(function() {
-    // Declare setDeleteCar function inside $(document).ready()
-    window.setDeleteCar = function(num_imma) {
-        console.log("Car to delete: " + num_imma);  // Debugging to check if num_imma is set
-        $('#confirmDelete').off('click').on('click', function() {
-            console.log("Delete button clicked for car: " + num_imma);  // Debugging to check if button click works
-            deleteCar(num_imma);  // Call deleteCar function
-        });
-    };
+            };
 
     // Declare deleteCar function inside $(document).ready()
     window.deleteCar = function(num_imma) {
@@ -240,8 +303,59 @@
     };
 });
 
+function openReturnCarModal(num_imma, start_date, end_date, prix_location) {
+    const startDate = new Date(start_date);
+    const endDate = new Date(end_date);
 
+    // Calculate the number of days between start_date and end_date
+    const timeDifference = endDate - startDate;
+    const daysRented = timeDifference / (1000 * 3600 * 24);  // Convert time difference to days
 
+    // Calculate rental fees
+    const rentalFees = daysRented * prix_location;
+
+    // Display the fees and car info in the modal
+    $('#returnCarInfo').text(`Rental Fees: ${rentalFees}$ (for ${daysRented} days)`);
+    window.currentCarNumImma = num_imma;  // Store car number in a global variable
+    $('#returnCarModal').modal('show');
+}
+
+// Close the return car modal
+function closeReturnCarModal() {
+    $('#returnCarModal').modal('hide');
+    // Reset the alert messages
+    $('#successMessage').addClass('d-none');
+    $('#errorMessage').addClass('d-none');
+}
+
+// Handle the return car confirmation
+$('#confirmReturnBtn').on('click', function() {
+    // Make the PUT request to return the car
+    fetch(`/return_car/${window.currentCarNumImma}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            // Show success message
+            $('#successMessage').removeClass('d-none');
+            setTimeout(() => {
+                closeReturnCarModal();  // Close modal after success
+                location.reload();  // Reload the page to update the car list
+            }, 1000);
+        } else {
+            // Show error message
+            $('#errorMessage').removeClass('d-none');
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        $('#errorMessage').removeClass('d-none');
+    });
+});
 
 
      // View car details
@@ -354,10 +468,6 @@ function updateCarData(updatedCar, num_imma) {
 }
 
 
-
-
-
-    });
     </script>
     
 </body>

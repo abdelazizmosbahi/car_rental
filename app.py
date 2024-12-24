@@ -1,7 +1,7 @@
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template
 from models import get_all_cars
-from models import add_car, cars_collection, get_renters_with_rented_cars, get_rented_cars_by_tenant,get_non_rented_cars, delete_car, update_car, get_car_by_id, get_all_cars, rent_car
+from models import add_car, cars_collection, get_renters_with_rented_cars,get_non_rented_cars, delete_car, update_car, get_car_by_id, get_all_cars, rent_car
 from flask import request, render_template, redirect, url_for
 import base64
 from pymongo import MongoClient
@@ -56,6 +56,9 @@ def testimonials():
 def managecar():
     return render_template('managecar.html')
 
+@app.route('/users')
+def users():
+    return render_template('users.html')
 # auth
 @app.route('/signup')
 def signup():
@@ -77,13 +80,13 @@ def dashboard():
     if 'tenant_id' not in session:
         return redirect(url_for('enter'))  # Redirect to the login page if not logged in
 
-    # Retrieve all cars from the database
-    cars = list(cars_collection.find())
-    for car in cars:
+    # Retrieve only cars with etat = 0 (available cars) from the database
+    available_cars = list(cars_collection.find({'etat': 0}))
+    for car in available_cars:
         car['_id'] = str(car['_id'])  # Convert ObjectId to string for JSON serialization
 
-    # Pass tenant info (from session) and cars to the template
-    return render_template('dashboard.html', cars=cars, tenant=session)
+    # Pass available cars and tenant info (from session) to the template
+    return render_template('dashboard.html', cars=available_cars, tenant=session)
 
 # Function to add a tenant
 @app.route('/add_tenant', methods=['POST'])
@@ -98,13 +101,15 @@ def add_tenant():
     tenant = {
         'username': username,
         'p': p,
-        'role': role
+        'role': role,
+        'rented_cars': []  # Initialize an empty list for rented cars
     }
     
     # Insert tenant into the tenants collection
     tenants_collection.insert_one(tenant)
     
     return jsonify({'message': 'Tenant added successfully!'}), 201
+
 
 @app.route('/enter', methods=['GET', 'POST'])
 def enter():
@@ -123,11 +128,12 @@ def enter():
         session['tenant_id'] = str(tenant['_id'])  # Store tenant ID in session
         session['username'] = tenant['username']  # Optional: store other info like username
 
-        # Return success and redirect to dashboard
-        return jsonify({'success': True}), 200
+        # Return success with tenant ID and redirect to dashboard
+        return jsonify({'success': True, 'tenant_id': str(tenant['_id'])}), 200
     else:
         # If the tenant doesn't exist or credentials are wrong
         return jsonify({'success': False, 'message': 'Invalid username or password!'}), 401
+
 # end auth
 @app.route('/add_car', methods=['POST'])
 def add_car_route():
@@ -205,24 +211,41 @@ def get_car(num_imma):
 
 
 
-@app.route('/get_all_cars', methods=['GET'])
-def get_all_cars_route():
-    cars = get_all_cars()
+# @app.route('/get_all_cars', methods=['GET'])
+# def get_all_cars_route():
+#     cars = get_all_cars()
     
-    # Check if we got the cars, and log the output
-    if cars:
-        print(f"Fetched {len(cars)} cars")  # Debugging line
-        return jsonify(cars)
-    else:
-        return jsonify({"message": "No cars found."}), 404
+#     # Check if we got the cars, and log the output
+#     if cars:
+#         print(f"Fetched {len(cars)} cars")  # Debugging line
+#         return jsonify(cars)
+#     else:
+#         return jsonify({"message": "No cars found."}), 404
+
+@app.route('/get_all_cars')
+def get_all_cars():
+    cars = list(cars_collection.find())  # Assuming this fetches all cars
+    for car in cars:
+        car['_id'] = str(car['_id'])  # Convert ObjectId to string for JSON serialization
+        if car['tenant']:  # If car is rented, include tenant info
+            car['tenant'] = {
+                'username': car['tenant']['username'],
+                'start_date': car['start_date'],
+                'end_date': car['end_date']
+            }
+        else:
+            car['tenant'] = None  # Set tenant to None if the car is not rented
+    return jsonify(cars)
 
 
-@app.route('/rent_car/<int:num_imma>', methods=['PUT'])
-def rent_car_route(num_imma):
+@app.route('/rent_car/<car_id>', methods=['PUT'])
+def rent_car_route(car_id):
     try:
+        # Get the data from the request body
         data = request.json  # Tenant info and dates
         print(f"Received data: {data}")  # Debug print
-
+        
+        # Tenant info and rental dates from the request
         tenant = {
             "_id": data['_id'],  # Tenant ID
             "username": data['username'],
@@ -230,13 +253,17 @@ def rent_car_route(num_imma):
         start_date = data.get('start_date', str(datetime.now().date()))  # Default: today
         end_date = data['end_date']
 
-        # Attempt to rent the car
-        if rent_car(num_imma, tenant, start_date, end_date):
+        # Attempt to rent the car and update the car and tenant
+        if rent_car(car_id, tenant, start_date, end_date):
             return jsonify({"message": "Car rented successfully!"})
         return jsonify({"error": "Car not available or not found"}), 404
     except Exception as e:
         print(f"Error: {e}")  # Log any error
         return jsonify({"error": "Something went wrong. Please try again."}), 500
+
+
+
+
 @app.route('/rented_cars/<int:tenant_id>', methods=['GET'])
 def rented_cars_route(tenant_id):
     """
@@ -284,14 +311,43 @@ def non_rented_cars_route():
         print(f"Error: {e}")  # Log the error to the terminal
         return jsonify({"error": "An unexpected error occurred."}), 500
 
-# @app.route('/return_car/<int:num_imma>', methods=['PUT'])
-# def return_car_route(num_imma):
-#     """
-#     Route to return a rented car and set it as available.
-#     """
-#     if return_car(num_imma):
-#         return jsonify({"message": "Car returned successfully and set as available!"})
-#     return jsonify({"error": "Car not found or not rented."}), 404
+@app.route('/return_car/<car_num_imma>', methods=['PUT'])
+def return_car_route(car_num_imma):
+    """
+    Route to return a rented car and set it as available.
+    """
+    car = cars_collection.find_one({"num_imma": car_num_imma})
+    if car and car['etat'] == 1:
+        # Set car as available and clear tenant info
+        cars_collection.update_one(
+            {"num_imma": car_num_imma},
+            {"$set": {"etat": 0, "tenant": {}, "start_date": None, "end_date": None}}
+        )
+        return jsonify({"message": "Car returned successfully and set as available!"})
+    return jsonify({"error": "Car not found or not rented."}), 404
+
+
+
+# list of all tenants
+@app.route('/get_all_tenants', methods=['GET'])
+def get_all_tenants():
+    # Fetch all tenants from the tenants collection
+    tenants = tenants_collection.find()
+
+    # Convert the MongoDB cursor to a list of dictionaries
+    tenants_list = []
+    for tenant in tenants:
+        tenant_data = {
+            'id': str(tenant['_id']),
+            'username': tenant['username'],
+            'role': tenant['role'],
+            'rented_cars': tenant['rented_cars']
+        }
+        tenants_list.append(tenant_data)
+
+    # Return the list of tenants as a JSON response
+    return jsonify(tenants_list), 200
+
 
 if __name__ == '__main__':
     print("Registered Routes:")

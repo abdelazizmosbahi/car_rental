@@ -93,15 +93,19 @@
                 e.preventDefault();  // Prevent the default form submission
                 
                 var formData = $(this).serialize();  // Get the form data
-
+    
                 $.ajax({
                     type: 'POST',
                     url: '/enter',
                     data: formData,
                     success: function(response) {
-                        // If valid, redirect to dashboard
+                        // If valid, save tenant ID to local storage and redirect
                         if (response.success) {
-                            window.location.href = "{{ url_for('dashboard') }}";  // Redirect to dashboard
+                            // Save tenant ID in local storage
+                            localStorage.setItem('tenant_id', response.tenant_id); // Store tenant ID
+    
+                            // Redirect to the dashboard
+                            window.location.href = "{{ url_for('dashboard') }}";
                         } else {
                             alert(response.message);  // Show error message
                         }
@@ -111,8 +115,19 @@
                     }
                 });
             });
+    
+            // Access the tenant ID from local storage later
+            var tenantId = localStorage.getItem('tenant_id');
+    
+            // Use the tenantId for any required logic
+            if (tenantId) {
+                console.log('Tenant ID:', tenantId); // You can now use tenantId for further logic
+            } else {
+                console.log('No tenant ID found in local storage.');
+            }
         });
     </script>
+    
 
 </body>
 </html>

@@ -59,57 +59,30 @@ def get_all_cars():
     return cars
 
 
-# Rent a car function
-def rent_car(num_imma, tenant, start_date, end_date):
-    """
-    Updates a car's state to 'rented' and adds tenant information along with the rental period.
-    """
-    rental_info = {
-        "tenant": tenant,
-        "start_date": start_date,
-        "end_date": end_date
-    }
+def rent_car(car_id, tenant, start_date, end_date):
+    # Find the car by its 'num_imma'
+    car = cars_collection.find_one({"num_imma": car_id})
+    
+    if car:
+        # Update the car document with tenant and rental dates
+        car['tenant'] = tenant
+        car['start_date'] = start_date
+        car['end_date'] = end_date
+        car['etat'] = 1  # Mark the car as rented
 
-    print(f"Attempting to rent car with num_imma: {num_imma} and rental info: {rental_info}")  # Debug print
+        # Update the car document in the cars collection
+        cars_collection.update_one({"num_imma": car_id}, {"$set": car})
 
-    result = cars_collection.update_one(
-        {"num_imma": num_imma, "etat": 0},  # Ensure the car is available
-        {"$set": {"etat": 1, **rental_info}}
-    )
-
-    if result.matched_count > 0:
-        print("Car rented successfully!")  # Debug print
+        # Add the marque of the rented car to the tenant's record
+        tenant_collection.update_one(
+            {"_id": tenant["_id"]},  # Find the tenant by their unique ID
+            {"$push": {"rented_cars": {"marque": car['marque']}}}  # Add the marque to rented_cars
+        )
         return True
-    else:
-        print("Car not available or not found.")  # Debug print
-        return False
-def get_rented_cars_by_tenant(tenant_id):
-    """
-    Retrieves all cars rented by a specific tenant based on tenant's id_loc.
-    """
-    try:
-        print(f"Querying rented cars for tenant_id: {tenant_id}")  # Log the tenant_id for debugging
-        query = {"tenant.id_loc": tenant_id, "etat": 1}  # Ensure we're looking for rented cars (etat: 1)
-        print(f"MongoDB Query: {query}")  # Log the query
+    return False
 
-        rented_cars_cursor = cars_collection.find(query)
-        rented_cars_list = list(rented_cars_cursor)  # Convert cursor to list
 
-        if rented_cars_list:
-            # Convert ObjectId to string for JSON serialization
-            for car in rented_cars_list:
-                car['_id'] = str(car['_id'])  # Convert ObjectId to string
-                # If there are any nested ObjectIds, convert them to strings as well
-                if 'tenant' in car:
-                    car['tenant']['_id'] = str(car['tenant'].get('_id', ''))  # Convert tenant's _id if present
-            print(f"Found {len(rented_cars_list)} rented car(s) for tenant_id: {tenant_id}")
-            return rented_cars_list
-        else:
-            print("No cars found for this tenant.")
-            return []
-    except Exception as e:
-        print(f"Error occurred while fetching rented cars for tenant_id {tenant_id}: {str(e)}")
-        return {"error": "Internal server error", "details": str(e)}  # Return error details
+
 
 
 def get_non_rented_cars():
@@ -139,3 +112,4 @@ def get_renters_with_rented_cars():
 def get_non_rented_cars():
     non_rented_cars = cars_collection.find({"etat": 0})  # Cars that are available
     return list(non_rented_cars)  # Convert the cursor to a list for easy handling
+
