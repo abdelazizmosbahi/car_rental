@@ -27,6 +27,7 @@ def add_car(num_imma, marque, modele, kilometrage, etat, prix_location, images):
         "kilometrage": kilometrage,
         "etat": etat,  # 0: available, 1: rented
         "prix_location": prix_location,
+        "total": 0 , # Initialize the total field to 0
         "tenant": None,  # No tenant when the car is available
         "images": images  # List of image URLs
     }

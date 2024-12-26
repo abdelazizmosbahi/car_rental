@@ -35,6 +35,7 @@
     <script src="{{ url_for('static', filename='js/jquery.easing.1.3.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bootstrap-datepicker.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/aos.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </head>
@@ -42,7 +43,6 @@
 
   <body>
 
-    
     <div class="site-wrap" id="home-section">
 
       <div class="site-mobile-menu site-navbar-target">
@@ -54,39 +54,21 @@
         <div class="site-mobile-menu-body"></div>
       </div>
 
-
-
       <header class="site-navbar site-navbar-target" role="banner">
-
         <div class="container">
           <div class="row align-items-center position-relative">
-
             <div class="col-3">
               <div class="site-logo">
                 <a href="{{ url_for('dashboard') }}"><strong>CarRental</strong></a>
               </div>
             </div>
-
             <div class="col-9  text-right">
-              <!-- Check if tenant is logged in -->
-{% if tenant['tenant_id'] %}
-<p>Welcome, {{ tenant['username'] }}! Your ID: {{ tenant['tenant_id'] }}</p>  <!-- Show the tenant ID -->
-
-<script>
-  localStorage.setItem('tenant_id', "{{ tenant['tenant_id'] }}");
-</script>
-
-
-{% else %}
-<p>Not logged in.</p>
-{% endif %}
-
               <span class="d-inline-block d-lg-none"><a href="#" class=" site-menu-toggle js-menu-toggle py-5 "><span class="icon-menu h3 text-black"></span></a></span>
 
               <nav class="site-navigation text-right ml-auto d-none d-lg-block" role="navigation">
                 <ul class="site-menu main-menu js-clone-nav ml-auto">
-                    <li ><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
-                    <li class="active"><a href="{{ url_for('listing') }}" class="nav-link">Listing</a></li>
+                    <li class="active"><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
+                    <li ><a href="{{ url_for('listing') }}" class="nav-link">Listing</a></li>
                     <li><a href="{{ url_for('testimonials') }}" class="nav-link">Testimonials</a></li>
                     <li><a href="{{ url_for('blog') }}" class="nav-link">Blog</a></li>
                     <li><a href="{{ url_for('about') }}" class="nav-link">About</a></li>
@@ -95,14 +77,9 @@
                 </ul>
             </nav>            
             </div>
-
-            
           </div>
         </div>
-
       </header>
-
-      
 <br><br><br>
 
 <div class="site-section">
@@ -158,7 +135,6 @@
                             </div>
                         </div>
 
-                        <!-- Bootstrap Modal for Renting a Car -->
        <!-- Rent Now Button -->
 <div>
     <p>
@@ -284,28 +260,21 @@
         `;
     }
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-
-
                     </div>
                 </div>
             </div>
             {% endfor %}
         </div>
+<hr>
+            <div class="container">
+                <h3>Your Rented Cars:</h3><br>
+                <div class="row" id="rentedCarsList">
+                    <!-- Rented cars will be displayed here -->
+                </div>
+            </div>
+        
     </div>
-    <div id="rentedCarsSection">
-        <h3>Your Rented Cars:</h3>
-        <ul id="rentedCarsList">
-            <!-- Rented cars will be listed here -->
-        </ul>
-    </div>
-    
 </div>
-
-
-
-
 
     <script>
        // Function to navigate through the car's images
@@ -369,15 +338,294 @@
 </script>
 
 
-<!-- 
-        let selectedCarNumImma;
-    let selectedTenantId;
- -->
+
+<!-- <div id="rentedCarsSection" class="site-section">
+    <div class="container">
+        <h3>Your Rented Cars:</h3><br>
+        <div class="row" id="rentedCarsList">
+        </div>
+    </div>
+</div> -->
 
 
-    </script>
+
+<script>
+const tenant_id = localStorage.getItem('tenant_id');
+if (tenant_id) {
+  // Make a GET request to fetch the rented cars for this tenant
+  fetch(`/mycars?tenant_id=${tenant_id}`)
+    .then(response => response.json())
+    .then(data => {
+      console.log("Fetched Data:", data);  // Debugging output
+
+      if (data.rented_cars && data.rented_cars.length > 0) {
+        // Clear the list before adding new items
+        const rentedCarsList = document.getElementById('rentedCarsList');
+        rentedCarsList.innerHTML = '';  // Clear previous list
+
+        // Iterate over the rented cars and create the card for each car
+        data.rented_cars.forEach((car, index) => {
+          console.log(`Car ${index}:`, car);  // Debugging output
+
+          // Check if car.images exists and is an array
+          const images = Array.isArray(car.images) ? car.images : [];
+          let imageSrc = '/path/to/placeholder.jpg';  // Default placeholder image
+          if (images.length > 0) {
+            // If images array has data, use the first image for display
+            imageSrc = `data:image/jpeg;base64,${images[0]}`;
+          }
+
+        // Calculate the number of days rented and the total price
+        const startDate = new Date(car.start_date);
+        const today = new Date();  // Get the current system date
+
+        // Ensure we don't calculate days rented if the car hasn't been rented yet
+        const timeDifference = today - startDate;
+        const daysRented = Math.max(Math.floor(timeDifference / (1000 * 3600 * 24)), 0);  // Ensure days rented is not negative
+
+        // Calculate total price based on the rental days (prix_location is the daily price)
+        const rentalFees = daysRented * car.prix_location;  // Only calculate from start to today
+
+
+          // Create the card for the car
+          const rentedCarCard = document.createElement('div');
+          rentedCarCard.classList.add('col-md-6', 'col-lg-4', 'mb-4');
+          rentedCarCard.innerHTML = `
+          <div id="alertsContainer"></div>  <br><br><!-- Success alerts will appear here -->
+            <div class="listing d-block align-items-stretch">
+                <div class="listing-img h-100 mr-4" style="position: relative;">
+                    <img 
+                        src="${imageSrc}" 
+                        alt="Car Image" 
+                        class="img-fluid car-image" 
+                        style="width: 300px; height: 200px; object-fit: cover; position: relative; top: 0%; opacity: 1;">
+                </div>
+                <div class="listing-contents h-100">
+                    <h3>${car.marque} ${car.modele}</h3>
+                    <div class="rent-price">
+                        <strong>$${rentalFees}</strong><span class="mx-1">to today</span>
+                    </div>
+                    <div class="d-block d-md-flex mb-3 border-bottom pb-3">
+                        <div class="listing-feature pr-4">
+                            <span class="caption"></span>
+                            <span class="number">${car.start_date}-${car.end_date}</span>
+                        </div>
+                    </div>
+
+                    <!-- Button to return the car -->
+                    <button 
+                        class="btn btn-danger" 
+                        onclick="openReturnCarModal('${car.num_imma}', '${car.start_date}', '${car.end_date}', ${car.prix_location})">
+                        Return Car
+                    </button>
+                </div>
+            </div>
+          `;
+          rentedCarsList.appendChild(rentedCarCard);
+        });
+      } else {
+        // No rented cars found
+        const rentedCarsList = document.getElementById('rentedCarsList');
+        rentedCarsList.innerHTML = '<div class="col-12"><p>No rented cars found.</p></div>';
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching rented cars:', error);
+    });
+} else {
+  console.log('Tenant not logged in');
+}
+
+// Open the return car modal
+function openReturnCarModal(num_imma, start_date, end_date, prix_location) {
+    const startDate = new Date(start_date);
+    const endDate = new Date(end_date);
+    const today = new Date();
+
+    // Calculate the number of days rented (start to today)
+    const timeDifference = today - startDate;
+    const daysRented = Math.max(Math.floor(timeDifference / (1000 * 3600 * 24)), 1);  // Ensure at least 1 day is counted
+
+    let rentalFees = daysRented * prix_location;
+
+    let extraFees = 0;
+    let lateDays = 0;
+    let earlyDays = 0;
+    let message = "";
+    let modalColor = 'success'; // Default to green
+    let modalTitle = 'On Date Return';
+    let totalMessage = `You rented this car from ${startDate.toDateString()} to ${endDate.toDateString()} for ${daysRented} days at $${rentalFees} total.`;
+
+    if (today < startDate) {
+        // Free condition: Rent hasn't started yet (grey)
+        modalColor = 'secondary';  // Grey color
+        modalTitle = 'Planned for rent';
+        rentalFees = 0;  // No rental fee if it hasn't started yet
+        message = `Your planned rental period has not yet started. Rent start from ${startDate.toDateString()} to ${endDate.toDateString()}.`;
+    } else if (today < endDate) {
+        // Early Return (Blue): Return is before the end date
+        modalColor = 'info';  // Blue color
+        modalTitle = 'Early Return';
+        let daysLeft = Math.floor((endDate - today) / (1000 * 3600 * 24));  // Days left until end date
+        message = `${totalMessage} You rented this car for ${daysRented} days, and you still have ${daysLeft} days remaining until the end date. If you wish to return the car today, you will pay only for the ${daysRented} days you rented the car.`;
+    } else if (today.toDateString() === endDate.toDateString()) {
+        // On Time Return (Green)
+        modalColor = 'success';  // Green color
+        modalTitle = 'On Date Return';
+        message = `${totalMessage} You need to return this car today, as today is the end date.`;
+    } else {
+        // Late Return (Red): Return is after the end date
+        lateDays = Math.floor((today - endDate) / (1000 * 3600 * 24));  // Days after the end date
+        extraFees = lateDays * prix_location * 2;  // Double fee for late days
+        rentalFees += extraFees;  // Add extra fees to total
+        modalColor = 'danger';  // Red color
+        modalTitle = 'Late Return';
+        message = `${totalMessage} You exceeded the return date by ${lateDays} days. Extra cost of $${extraFees} for the late days. Your total is $${rentalFees}.`;
+    }
+
+    // Update modal content with the appropriate message, title, and color
+    document.getElementById('returnCarInfo').textContent = message;
+    document.getElementById('modalContent').className = `modal-content text-white bg-${modalColor}`;
+    document.getElementById('returnCarModalLabel').textContent = modalTitle;
+
+    // Store the car number and the calculated rental fees in global variables
+    window.currentCarNumImma = num_imma;
+    window.currentTotalAmount = rentalFees; // Store total amount for confirmation
+
+    // Show the rental fees in bold within the modal, not in the confirm button
+    document.getElementById('rentalFees').innerHTML = `Total: <strong>$${rentalFees}</strong>`;
+
+    // Show the return car modal
+    $('#returnCarModal').modal('show');
+}
+
+// Process the return car and send the data to the server
+function processReturnCar() {
+    fetch(`/return_car/${window.currentCarNumImma}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ totalAmount: window.currentTotalAmount })  // Send the total amount to the server
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            // Show success message as a Bootstrap alert
+            const successAlert = `
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <strong>Success!</strong> Car returned successfully!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            // Append the success message to the page (e.g., at the top or in a specific container)
+            document.getElementById('alertsContainer').innerHTML = successAlert;
+
+            // Close the return car modal and reload after a short delay
+            setTimeout(() => {
+                closeReturnCarModal();
+                location.reload();  // Reload the page to show the updated car list and totals
+            }, 2000); // Adjust delay as needed
+        } else {
+            // Show error message if the return failed
+            $('#errorMessage').removeClass('d-none');
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        $('#errorMessage').removeClass('d-none');
+    });
+
+    // Hide the confirmation button after processing the return
+    $('#confirmReturnButton').prop('disabled', true);
+}
+
+
+// Close the return car modal
+function closeReturnCarModal() {
+    $('#returnCarModal').modal('hide');
+    // Reset the alert messages
+    $('#successMessage').addClass('d-none');
+    $('#errorMessage').addClass('d-none');
+}
+
+
+
+
+
+</script>
+  
+
+<!-- Return Car Modal -->
+<div class="modal fade" id="returnCarModal" tabindex="-1" aria-labelledby="returnCarModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" id="modalContent">
+            <div class="modal-header">
+                <h5 class="modal-title" id="returnCarModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="returnCarInfo"></p>
+                <!-- Display the rental fees in bold -->
+                <p id="rentalFees"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <!-- Confirm Return Button -->
+                <button type="button" id="confirmReturnButton" class="btn btn-primary" onclick="processReturnCar()">Confirm Return</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+  
+<hr>
+<footer class="site-footer">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-3">
+            <h2 class="footer-heading mb-4">About Us</h2>
+            <p>We offer a wide range of cars to suit every need, from daily commutes to luxurious road trips. Our goal is to provide top-quality vehicles with seamless booking and reliable service. Join us and drive with confidence!</p>
+            <ul class="list-unstyled social">
+              <li><a href="#" class="social-icon"><span class="icon-facebook"></span></a></li>
+              <li><a href="#" class="social-icon"><span class="icon-instagram"></span></a></li>
+              <li><a href="#" class="social-icon"><span class="icon-twitter"></span></a></li>
+              <li><a href="#" class="social-icon"><span class="icon-linkedin"></span></a></li>
+            </ul>
+          </div>
+          
+        <div class="col-lg-8 ml-auto">
+          <div class="row">
+            <div class="col-lg-3">
+              <h2 class="footer-heading mb-4">Quick Links</h2>
+              <ul class="list-unstyled">
+                <li><a href="#">About Us</a></li>
+                <li><a href="#">Testimonials</a></li>
+                <li><a href="#">Terms of Service</a></li>
+                <li><a href="#">Privacy</a></li>
+                <li><a href="#">Contact Us</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row pt-5 mt-5 text-center">
+        <div class="col-md-12">
+          <div class="border-top pt-5">
+            <p>
+          Copyright &copy;<script>document.write(new Date().getFullYear());</script> All rights reserved | <i class="icon-heart text-danger" aria-hidden="true"></i> by <a target="_blank" >AZIZ MOSBAHI</a>
+          </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </footer>
+
     </div>
   </body>
 
+
+  
 </html>
 

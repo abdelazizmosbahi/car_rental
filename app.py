@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, flash, request, jsonify, render_template
 from models import get_all_cars
 from models import add_car, cars_collection, get_renters_with_rented_cars,get_non_rented_cars, delete_car, update_car, get_car_by_id, get_all_cars, rent_car
 from flask import request, render_template, redirect, url_for
@@ -211,23 +211,12 @@ def get_car(num_imma):
 
 
 
-# @app.route('/get_all_cars', methods=['GET'])
-# def get_all_cars_route():
-#     cars = get_all_cars()
-    
-#     # Check if we got the cars, and log the output
-#     if cars:
-#         print(f"Fetched {len(cars)} cars")  # Debugging line
-#         return jsonify(cars)
-#     else:
-#         return jsonify({"message": "No cars found."}), 404
-
 @app.route('/get_all_cars')
 def get_all_cars():
     cars = list(cars_collection.find())  # Assuming this fetches all cars
     for car in cars:
         car['_id'] = str(car['_id'])  # Convert ObjectId to string for JSON serialization
-        if car['tenant']:  # If car is rented, include tenant info
+        if 'tenant' in car and car['tenant']:  # Check if 'tenant' exists and is not None
             car['tenant'] = {
                 'username': car['tenant']['username'],
                 'start_date': car['start_date'],
@@ -262,6 +251,40 @@ def rent_car_route(car_id):
         return jsonify({"error": "Something went wrong. Please try again."}), 500
 
 
+@app.route('/mycars', methods=['GET'])
+def my_cars():
+    try:
+        tenant_id = request.args.get('tenant_id')  # Get tenant_id from query parameter
+        if not tenant_id:
+            return jsonify({"error": "Tenant not logged in"}), 401  # Return an error if no tenant_id
+
+        # Find cars that have the matching tenant_id in the 'tenant._id' field
+        rented_cars = cars_collection.find({"tenant._id": tenant_id})
+
+        # If cars are found, return them
+        cars_list = []
+        for car in rented_cars:
+            car_data = {
+                "num_imma": car.get("num_imma"),
+                "marque": car.get("marque"),
+                "modele": car.get("modele"),
+                "kilometrage": car.get("kilometrage"),
+                "etat": car.get("etat"),
+                "prix_location": car.get("prix_location"),
+                "start_date": car.get("start_date"),
+                "end_date": car.get("end_date"),
+                "images": car.get("images", [])  # Add the images field
+            }
+            cars_list.append(car_data)
+
+        if cars_list:
+            return jsonify({"rented_cars": cars_list})
+        else:
+            return jsonify({"message": "No rented cars found for this tenant"}), 404
+
+    except Exception as e:
+        print(f"Error: {e}")  # Log any error
+        return jsonify({"error": "Something went wrong. Please try again."}), 500
 
 
 @app.route('/rented_cars/<int:tenant_id>', methods=['GET'])
@@ -326,31 +349,97 @@ def return_car_route(car_num_imma):
         return jsonify({"message": "Car returned successfully and set as available!"})
     return jsonify({"error": "Car not found or not rented."}), 404
 
+@app.route('/return_my_car/<car_num_imma>', methods=['PUT'])
+def return_my_car(car_num_imma):
+    current_date = datetime.now()
+    car = cars_collection.find_one({"num_imma": car_num_imma})
+    
+    if car and car['etat'] == 1:  # Check if car is rented
+        start_date = datetime.strptime(car['start_date'], '%Y-%m-%d')
+        end_date = datetime.strptime(car['end_date'], '%Y-%m-%d')
+        
+        rented_days = (current_date - start_date).days
+        rental_fees = rented_days * car['prix_location']
+        extra_fee = 0
 
+        if current_date > end_date:
+            late_days = (current_date - end_date).days
+            rental_fees += late_days * car['prix_location'] * 2  # Extra charge for late return
+            extra_fee = late_days * car['prix_location'] * 2
+
+        # Ensure that the total amount is calculated as an integer or float
+        total_amount = float(car['total']) + rental_fees  # Ensure total is a float
+
+        # Update the car in the database with the new total cost and other necessary fields
+        update_result = cars_collection.update_one(
+            {"num_imma": car_num_imma},
+            {"$set": {
+                "etat": 0,  # Set car as available
+                "tenant": {},  # Clear tenant info
+                "start_date": None,  # Reset start date
+                "end_date": None,  # Reset end date
+                "total": total_amount  # Update the total cost in the database
+            }}
+        )
+
+        # Check if the update was successful
+        if update_result.modified_count > 0:
+            return jsonify({
+                "message": f"Car returned successfully! Total rental fees: ${rental_fees:.2f}. Extra fee: ${extra_fee:.2f} for {late_days} late days. Updated total: ${total_amount:.2f}."
+            })
+        else:
+            return jsonify({"error": "Failed to update car information."}), 500
+
+    return jsonify({"error": "Car not found or not rented."}), 404
 
 # list of all tenants
 @app.route('/get_all_tenants', methods=['GET'])
 def get_all_tenants():
-    # Fetch all tenants from the tenants collection
-    tenants = tenants_collection.find()
+    try:
+        # Fetch all tenants with role='tenant' from the tenants collection
+        tenants = tenants_collection.find({"role": "tenant"})
 
-    # Convert the MongoDB cursor to a list of dictionaries
-    tenants_list = []
-    for tenant in tenants:
-        tenant_data = {
-            'id': str(tenant['_id']),
-            'username': tenant['username'],
-            'role': tenant['role'],
-            'rented_cars': tenant['rented_cars']
+        # Convert the MongoDB cursor to a list of dictionaries
+        tenants_list = []
+        for tenant in tenants:
+            tenant_data = {
+                'id': str(tenant['_id']),  # Convert '_id' to string
+                'username': tenant['username'],
+                'role': tenant['role'],
+                'rented_cars': tenant.get('rented_cars', [])  # Get rented_cars if present, default to empty list
+            }
+            tenants_list.append(tenant_data)
+
+        # Return the list of tenants as a JSON response
+        return jsonify(tenants_list), 200
+
+    except Exception as e:
+        print(f"Error: {e}")  # Log any error
+        return jsonify({"error": "Something went wrong. Please try again."}), 500
+
+@app.route('/contact_us', methods=['GET', 'POST'])
+def contact_us():
+    if request.method == 'POST':
+        # Process the form data
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
+        email = request.form.get('email')
+        message = request.form.get('message')
+
+        # Example MongoDB insertion
+        new_contact = {
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": email,
+            "message": message
         }
-        tenants_list.append(tenant_data)
+        mongo.db.contacts.insert_one(new_contact)
+        flash("Message sent successfully!", "success")
+        return redirect('/contact')
 
-    # Return the list of tenants as a JSON response
-    return jsonify(tenants_list), 200
+    # Render the HTML form for GET requests
+    return render_template('contact.html')
 
 
 if __name__ == '__main__':
-    print("Registered Routes:")
-    for rule in app.url_map.iter_rules():
-        print(rule)
     app.run(debug=True)
