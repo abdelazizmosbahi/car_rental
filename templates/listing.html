@@ -35,6 +35,101 @@
     <script src="{{ url_for('static', filename='js/aos.js') }}"></script>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <style>
+      /* Center the car cards and the pagination */
+.row.justify-content-center {
+    display: flex;
+    justify-content: center;
+}
+
+/* Center the pagination links and make them inline */
+.custom-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.page-link {
+    text-decoration: none;
+    color: #007bff;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.page-link:hover {
+    color: #0056b3;
+}
+
+/* Zoom effect on the car card */
+.car-card {
+    transition: transform 0.3s ease-in-out;
+}
+
+.car-card.zoomed {
+    transform: scale(1.1); /* Zoom in effect */
+}
+
+/* Style to ensure images inside cards are centered properly */
+.listing-img {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+    </style>
+    <style>
+      .listing-img {
+        position: relative;
+        width: 100%;
+        height: 300px; /* Set a fixed height for the image container */
+        overflow: hidden;
+      }
+    
+      .car-image {
+        object-fit: cover; /* This ensures the image fills the container and maintains aspect ratio */
+        width: 100%;
+        height: 100%;
+      }
+    
+      .navigate-left, .navigate-right {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 24px;
+        color: #fff;
+        background: rgba(0, 0, 0, 0.5);
+        border: none;
+        padding: 10px;
+        cursor: pointer;
+      }
+    
+      .navigate-left {
+        left: 10px;
+      }
+    
+      .navigate-right {
+        right: 10px;
+      }
+
+      /* Centering the car name */
+.car-name {
+  text-align: center;
+  font-size: 1.5rem; /* Adjust as needed */
+  margin: 15px 0; /* Optional: Adds space above and below */
+}
+
+/* Setting a fixed size for the car image */
+.car-image {
+  width: 800px; /* Set the desired width */
+  height: 500px; /* Set the desired height */
+  object-fit: cover; /* Ensures the image covers the area without stretching */
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+    </style>
+    
 </head>
 
   <body>
@@ -71,6 +166,7 @@
               <nav class="site-navigation text-right ml-auto d-none d-lg-block" role="navigation">
                 <ul class="site-menu main-menu js-clone-nav ml-auto">
                     <li><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
+                    <li><a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a></li>
                     <li class="active"><a href="{{ url_for('listing') }}" class="nav-link">Listing</a></li>
                     <li><a href="{{ url_for('testimonials') }}" class="nav-link">Testimonials</a></li>
                     <li><a href="{{ url_for('blog') }}" class="nav-link">Blog</a></li>
@@ -94,8 +190,7 @@
             <div class="col-lg-5">
 
               <div class="intro">
-                <h1><strong>Listings</strong></h1>
-                <div class="custom-breadcrumbs"><a href="index.html">Home</a> <span class="mx-2">/</span> <strong>Listings</strong></div>
+                <h1><strong>Car Listing Details</strong></h1>
               </div>
 
             </div>
@@ -112,304 +207,159 @@
       <div class="container">
         <div class="row">
           <div class="col-lg-7">
-            <h2 class="section-heading"><strong>Car Listings</strong></h2>
-            <p class="mb-5">Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p>    
+            <h2 class="section-heading"><strong>Car Listing Details</strong></h2>
+            <!-- <p class="mb-5">Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p>     -->
           </div>
         </div>
         
 
-        <div class="row">
-          <div class="col-md-6 col-lg-4 mb-4">
+        <div class="site-section bg-light">
+          <div class="container">
+            <!-- Car Cards -->
+            <div class="row">
+              <div class="col-md-12 text-center">
+                <div class="car-card-container">
+                  {% for car in cars %}
+                  <div class="car-card" id="car-card-{{ loop.index }}" style="display: none;">
+                    <div class="listing-img h-100">
+                      <img src="data:image/jpeg;base64,{{ car['images'][0] }}" alt="Car Image" class="img-fluid car-image" id="car-image-{{ loop.index }}" data-images="{{ car['images'] | join(',') }}" data-current-index="0">
+                      <!-- Navigation Buttons -->
+                      <button class="navigate-left" onclick="navigateCarImage({{ loop.index }}, -1)">&#8249;</button>
+                      <button class="navigate-right" onclick="navigateCarImage({{ loop.index }}, 1)">&#8250;</button>
+                    </div>
+                    
+                    <h3 class="car-name">{{ car['marque'] }} {{ car['modele'] }}</h3>
+                    <div class="rent-price">
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                  <!-- Pagination -->
+<div class="row">
+  <div class="col-12 text-center">
+    <div class="custom-pagination" id="pagination-container">
+      <!-- Pagination links will be inserted here dynamically -->
+    </div>
+  </div>
+</div>
 
-            <div class="listing d-block  align-items-stretch">
-              <div class="listing-img h-100 mr-4">
-                <img src="images/car_6.jpg" alt="Image" class="img-fluid">
-              </div>
-              <div class="listing-contents h-100">
-                <h3>Mitsubishi Pajero</h3>
-                <div class="rent-price">
-                  <strong>$389.00</strong><span class="mx-1">/</span>day
-                </div>
-                <div class="d-block d-md-flex mb-3 border-bottom pb-3">
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Luggage:</span>
-                    <span class="number">8</span>
-                  </div>
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Doors:</span>
-                    <span class="number">4</span>
-                  </div>
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Passenger:</span>
-                    <span class="number">4</span>
-                  </div>
-                </div>
-                <div>
-                  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quos eos at eum, voluptatem quibusdam.</p>
-                  <p><a href="#" class="btn btn-primary btn-sm">Rent Now</a></p>
                 </div>
               </div>
-
             </div>
-          </div>
-
-          <div class="col-md-6 col-lg-4 mb-4">
-
-            <div class="listing d-block  align-items-stretch">
-              <div class="listing-img h-100 mr-4">
-                <img src="images/car_5.jpg" alt="Image" class="img-fluid">
-              </div>
-              <div class="listing-contents h-100">
-                <h3>Nissan Moco</h3>
-                <div class="rent-price">
-                  <strong>$389.00</strong><span class="mx-1">/</span>day
-                </div>
-                <div class="d-block d-md-flex mb-3 border-bottom pb-3">
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Luggage:</span>
-                    <span class="number">8</span>
-                  </div>
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Doors:</span>
-                    <span class="number">4</span>
-                  </div>
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Passenger:</span>
-                    <span class="number">4</span>
-                  </div>
-                </div>
-                <div>
-                  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quos eos at eum, voluptatem quibusdam.</p>
-                  <p><a href="#" class="btn btn-primary btn-sm">Rent Now</a></p>
-                </div>
-              </div>
-
-            </div>
-          </div>
-          
-
-          <div class="col-md-6 col-lg-4 mb-4">
-
-            <div class="listing d-block  align-items-stretch">
-              <div class="listing-img h-100 mr-4">
-                <img src="images/car_4.jpg" alt="Image" class="img-fluid">
-              </div>
-              <div class="listing-contents h-100">
-                <h3>Honda Fitta</h3>
-                <div class="rent-price">
-                  <strong>$389.00</strong><span class="mx-1">/</span>day
-                </div>
-                <div class="d-block d-md-flex mb-3 border-bottom pb-3">
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Luggage:</span>
-                    <span class="number">8</span>
-                  </div>
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Doors:</span>
-                    <span class="number">4</span>
-                  </div>
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Passenger:</span>
-                    <span class="number">4</span>
-                  </div>
-                </div>
-                <div>
-                  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quos eos at eum, voluptatem quibusdam.</p>
-                  <p><a href="#" class="btn btn-primary btn-sm">Rent Now</a></p>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          <div class="col-md-6 col-lg-4 mb-4">
-
-            <div class="listing d-block  align-items-stretch">
-              <div class="listing-img h-100 mr-4">
-                <img src="images/car_3.jpg" alt="Image" class="img-fluid">
-              </div>
-              <div class="listing-contents h-100">
-                <h3>Skoda Laura</h3>
-                <div class="rent-price">
-                  <strong>$389.00</strong><span class="mx-1">/</span>day
-                </div>
-                <div class="d-block d-md-flex mb-3 border-bottom pb-3">
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Luggage:</span>
-                    <span class="number">8</span>
-                  </div>
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Doors:</span>
-                    <span class="number">4</span>
-                  </div>
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Passenger:</span>
-                    <span class="number">4</span>
-                  </div>
-                </div>
-                <div>
-                  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quos eos at eum, voluptatem quibusdam.</p>
-                  <p><a href="#" class="btn btn-primary btn-sm">Rent Now</a></p>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          <div class="col-md-6 col-lg-4 mb-4">
-
-            <div class="listing d-block  align-items-stretch">
-              <div class="listing-img h-100 mr-4">
-                <img src="images/car_2.jpg" alt="Image" class="img-fluid">
-              </div>
-              <div class="listing-contents h-100">
-                <h3>Mazda LaPuta</h3>
-                <div class="rent-price">
-                  <strong>$389.00</strong><span class="mx-1">/</span>day
-                </div>
-                <div class="d-block d-md-flex mb-3 border-bottom pb-3">
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Luggage:</span>
-                    <span class="number">8</span>
-                  </div>
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Doors:</span>
-                    <span class="number">4</span>
-                  </div>
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Passenger:</span>
-                    <span class="number">4</span>
-                  </div>
-                </div>
-                <div>
-                  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quos eos at eum, voluptatem quibusdam.</p>
-                  <p><a href="#" class="btn btn-primary btn-sm">Rent Now</a></p>
-                </div>
-              </div>
-
-            </div>
-          </div>
-          
-
-          <div class="col-md-6 col-lg-4 mb-4">
-
-            <div class="listing d-block  align-items-stretch">
-              <div class="listing-img h-100 mr-4">
-                <img src="images/car_1.jpg" alt="Image" class="img-fluid">
-              </div>
-              <div class="listing-contents h-100">
-                <h3>Buick LaCrosse</h3>
-                <div class="rent-price">
-                  <strong>$389.00</strong><span class="mx-1">/</span>day
-                </div>
-                <div class="d-block d-md-flex mb-3 border-bottom pb-3">
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Luggage:</span>
-                    <span class="number">8</span>
-                  </div>
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Doors:</span>
-                    <span class="number">4</span>
-                  </div>
-                  <div class="listing-feature pr-4">
-                    <span class="caption">Passenger:</span>
-                    <span class="number">4</span>
-                  </div>
-                </div>
-                <div>
-                  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quos eos at eum, voluptatem quibusdam.</p>
-                  <p><a href="#" class="btn btn-primary btn-sm">Rent Now</a></p>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-        </div>
-        <div class="row">
-          <div class="col-5">
-            <div class="custom-pagination">
-              <a href="#">1</a>
-              <span>2</span>
-              <a href="#">3</a>
-              <a href="#">4</a>
-              <a href="#">5</a>
-            </div>
+        
+           
           </div>
         </div>
+        
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script>
+          $(document).ready(function() {
+            // Define the total number of cars
+            const totalCars = {{ cars | length }}; // Total number of cars (adjust this dynamically)
+            const carsPerPage = 1; // Show only one car per page
+            const totalPages = totalCars; // Number of pages equals the number of cars
+        
+            // Generate the pagination links dynamically
+            const paginationContainer = $('#pagination-container');
+            paginationContainer.empty(); // Clear any existing pagination
+        
+            // Create page links (one for each car)
+            for (let i = 1; i <= totalPages; i++) {
+              paginationContainer.append(`<a href="#" class="page-link" data-page="${i}">${i}</a>`);
+            }
+        
+            // Event listener for pagination click
+            $(document).on('click', '.page-link', function(e) {
+              e.preventDefault();
+              const page = $(this).data('page');
+              handlePageChange(page);
+            });
+        
+            // Show the first car when the page loads
+            handlePageChange(1);
+          });
+        
+          // Function to handle page change
+          function handlePageChange(page) {
+            const totalCars = {{ cars | length }}; // Total number of cars
+            const carsPerPage = 1; // Number of cars to display per page
+            const startIndex = (page - 1) * carsPerPage;
+            const endIndex = page * carsPerPage;
+        
+            // Hide all car cards first
+            $('.car-card').hide(); 
+        
+            // Show the car corresponding to the current page
+            $(`.car-card`).slice(startIndex, endIndex).show();
+        
+            // Set active class on current page and update the car display
+            $('.page-link').removeClass('active');
+            $(`.page-link[data-page="${page}"]`).addClass('active');
+          }
+        </script>
+        
+        <script>
+          $(document).ready(function() {
+            // Show the first car by default
+            $('#car-card-1').show();
+        
+            // Pagination click handler
+            $('.page-link').click(function(e) {
+              e.preventDefault();
+        
+              // Get the selected page number
+              var pageIndex = $(this).data('page');
+        
+              // Hide the currently visible car card
+              var currentCarCard = $('.car-card:visible');
+              var currentCarIndex = currentCarCard.attr('id').split('-')[2];
+        
+              // Animate the current images back into the car card
+              var currentImages = $(`#car-image-${currentCarIndex}`);
+              currentImages.animate({
+                opacity: 0
+              }, 500, function() {
+                // When the images are fully hidden, switch to the new car
+                currentCarCard.fadeOut(500);
+                
+                // Show the selected car card
+                var nextCarCard = $(`#car-card-${pageIndex}`);
+                nextCarCard.fadeIn(500, function() {
+                  // Animate the images of the new car to show up
+                  var nextImages = $(`#car-image-${pageIndex}`);
+                  nextImages.animate({
+                    opacity: 1
+                  }, 500);
+                });
+              });
+            });
+          });
+        
+          // Function to navigate through the car's images
+          function navigateCarImage(carIndex, direction) {
+            const imgElement = $(`#car-image-${carIndex}`);
+            const images = imgElement.data('images').split(','); // Get the array of images
+            let currentIndex = parseInt(imgElement.attr('data-current-index')); // Current index
+            
+            // Calculate new index
+            currentIndex = (currentIndex + direction + images.length) % images.length;
+        
+            // Update the image src and current index with smooth transition
+            imgElement.fadeOut(300, function() {
+              imgElement.attr('src', `data:image/jpeg;base64,${images[currentIndex]}`);
+              imgElement.attr('data-current-index', currentIndex);
+              imgElement.fadeIn(300);
+            });
+          }
+        </script>
+        
+        
       </div>
     </div>
 
     
 
-    <div class="site-section">
-      <div class="container">
-        <div class="row">
-          <div class="col-lg-7">
-            <h2 class="section-heading"><strong>Testimonials</strong></h2>
-            <p class="mb-5">Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p>    
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-lg-4 mb-4 mb-lg-0">
-            <div class="testimonial-2">
-              <blockquote class="mb-4">
-                <p>"Lorem ipsum dolor sit amet, consectetur adipisicing elit. Voluptatem, deserunt eveniet veniam. Ipsam, nam, voluptatum"</p>
-              </blockquote>
-              <div class="d-flex v-card align-items-center">
-                <img src="images/person_1.jpg" alt="Image" class="img-fluid mr-3">
-                <div class="author-name">
-                  <span class="d-block">Mike Fisher</span>
-                  <span>Owner, Ford</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-4 mb-4 mb-lg-0">
-            <div class="testimonial-2">
-              <blockquote class="mb-4">
-                <p>"Lorem ipsum dolor sit amet, consectetur adipisicing elit. Voluptatem, deserunt eveniet veniam. Ipsam, nam, voluptatum"</p>
-              </blockquote>
-              <div class="d-flex v-card align-items-center">
-                <img src="images/person_2.jpg" alt="Image" class="img-fluid mr-3">
-                <div class="author-name">
-                  <span class="d-block">Jean Stanley</span>
-                  <span>Traveler</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-4 mb-4 mb-lg-0">
-            <div class="testimonial-2">
-              <blockquote class="mb-4">
-                <p>"Lorem ipsum dolor sit amet, consectetur adipisicing elit. Voluptatem, deserunt eveniet veniam. Ipsam, nam, voluptatum"</p>
-              </blockquote>
-              <div class="d-flex v-card align-items-center">
-                <img src="images/person_3.jpg" alt="Image" class="img-fluid mr-3">
-                <div class="author-name">
-                  <span class="d-block">Katie Rose</span>
-                  <span >Customer</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <div class="site-section bg-primary py-5">
-      <div class="container">
-        <div class="row align-items-center">
-          <div class="col-lg-7 mb-4 mb-md-0">
-            <h2 class="mb-0 text-white">What are you waiting for?</h2>
-            <p class="mb-0 opa-7">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Obcaecati, laboriosam.</p>
-          </div>
-          <div class="col-lg-5 text-md-right">
-            <a href="#" class="btn btn-primary btn-white">Rent a car now</a>
-          </div>
-        </div>
-      </div>
-    </div>
 
       
     <footer class="site-footer">

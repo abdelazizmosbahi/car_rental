@@ -70,6 +70,7 @@
               <nav class="site-navigation text-right ml-auto d-none d-lg-block" role="navigation">
                 <ul class="site-menu main-menu js-clone-nav ml-auto">
                     <li><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
+                    <li><a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a></li>
                     <li><a href="{{ url_for('listing') }}" class="nav-link">Listing</a></li>
                     <li><a href="{{ url_for('testimonials') }}" class="nav-link">Testimonials</a></li>
                     <li><a href="{{ url_for('blog') }}" class="nav-link">Blog</a></li>
@@ -121,35 +122,36 @@
       
       <div class="site-section bg-light">
         <div class="container">
-          <div class="row justify-content-center text-center mb-5 section-2-title">
-            <div class="col-md-6">
-              <h2 class="mb-4">Meet Our Team</h2>
-            </div>
-          </div>
-          <div class="row align-items-stretch">
-            <div class="col-lg-4 col-md-6 mb-5">
-              <div class="post-entry-1 h-100 person-1">
-                <img src="{{ url_for('static', filename='images/person_1.jpg') }}" alt="Image" class="img-fluid">
-                <div class="post-entry-1-contents">
-                  <span class="meta">Founder</span>
-                  <h2>Najeh MOSBAHI</h2>
-                  <p>Najeh ensures our services provide top-notch quality and satisfaction for all customers.</p>
+            <div class="row justify-content-center text-center mb-5 section-2-title">
+                <div class="col-md-6">
+                    <h2 class="mb-4">Meet Our Team</h2>
                 </div>
-              </div>
             </div>
-            <div class="col-lg-4 col-md-6 mb-5">
-              <div class="post-entry-1 h-100 person-1">
-                <img src="{{ url_for('static', filename='images/person_2.jpg') }}" alt="Image" class="img-fluid">
-                <div class="post-entry-1-contents">
-                  <span class="meta">Developer</span>
-                  <h2>Aziz MOSBAHI</h2>
-                  <p>Aziz leads our team with a focus on innovation and delivering outstanding experiences.</p>
+            <div class="row justify-content-center">
+                <div class="col-lg-4 col-md-6 mb-5">
+                    <div class="post-entry-1 h-100 person-1">
+                        <img src="{{ url_for('static', filename='images/person_1.jpg') }}" alt="Image" class="img-fluid">
+                        <div class="post-entry-1-contents">
+                            <span class="meta">Founder</span>
+                            <h2>Najeh MOSBAHI</h2>
+                            <p>Najeh ensures our services provide top-notch quality and satisfaction for all customers.</p>
+                        </div>
+                    </div>
                 </div>
-              </div>
+                <div class="col-lg-4 col-md-6 mb-5">
+                    <div class="post-entry-1 h-100 person-1">
+                        <img src="{{ url_for('static', filename='images/person_2.jpg') }}" alt="Image" class="img-fluid">
+                        <div class="post-entry-1-contents">
+                            <span class="meta">Developer</span>
+                            <h2>Aziz MOSBAHI</h2>
+                            <p>Aziz leads our team with a focus on innovation and delivering outstanding experiences.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
+    </div>
+    
       
       <div class="site-section">
         <div class="container">

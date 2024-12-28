@@ -5,6 +5,8 @@ from datetime import datetime
 client = MongoClient('mongodb://localhost:27017/')
 db = client['car_rental_db']  # The database for the car rental app
 cars_collection = db['voitures']
+contact_us_collection = db.contact_us  # Collection for contact us messages
+testimonials_collection = db.testimonials  # Collection for contact us messages
 
 # Cars collection
 cars_collection = db['voitures']
@@ -60,17 +62,62 @@ def get_all_cars():
     return cars
 
 
+# def rent_car(car_id, tenant, start_date, end_date):
+#     # Find the car by its 'num_imma'
+#     car = cars_collection.find_one({"num_imma": car_id})
+    
+#     if car:
+#         # Update the car document with tenant and rental dates
+#         car['tenant'] = tenant
+#         car['start_date'] = start_date
+#         car['end_date'] = end_date
+#         car['etat'] = 1  # Mark the car as rented
+
+#         # Update the car document in the cars collection
+#         cars_collection.update_one({"num_imma": car_id}, {"$set": car})
+
+#         # Add the marque of the rented car to the tenant's record
+#         tenant_collection.update_one(
+#             {"_id": tenant["_id"]},  # Find the tenant by their unique ID
+#             {"$push": {"rented_cars": {"marque": car['marque']}}}  # Add the marque to rented_cars
+#         )
+#         return True
+#     return False
+
 def rent_car(car_id, tenant, start_date, end_date):
+    # Convert string dates to datetime objects for comparison
+    start_date = datetime.strptime(start_date, '%Y-%m-%d')
+    end_date = datetime.strptime(end_date, '%Y-%m-%d')
+
     # Find the car by its 'num_imma'
     car = cars_collection.find_one({"num_imma": car_id})
     
     if car:
-        # Update the car document with tenant and rental dates
-        car['tenant'] = tenant
-        car['start_date'] = start_date
-        car['end_date'] = end_date
-        car['etat'] = 1  # Mark the car as rented
+        # Check if the car is already rented for overlapping periods
+        existing_rentals = cars_collection.find({"num_imma": car_id, "etat": 1})  # Rented cars
+        for rental in existing_rentals:
+            # Convert the start and end dates of the existing rental
+            existing_start_date = datetime.strptime(rental['start_date'], '%Y-%m-%d')
+            existing_end_date = datetime.strptime(rental['end_date'], '%Y-%m-%d')
 
+            # Check if there is any overlap with existing rental
+            if (start_date < existing_end_date and end_date > existing_start_date):
+                return False  # Overlap found, cannot rent the car
+
+        # If the car is planned for future rental (before today)
+        if start_date > datetime.now():
+            # The car is still available (but planned for future rental), keep etat 0
+            car['tenant'] = tenant
+            car['start_date'] = start_date.strftime('%Y-%m-%d')
+            car['end_date'] = end_date.strftime('%Y-%m-%d')
+            car['etat'] = 0  # Keep the car available (etat = 0)
+        else:
+            # Rent the car if it's available
+            car['tenant'] = tenant
+            car['start_date'] = start_date.strftime('%Y-%m-%d')
+            car['end_date'] = end_date.strftime('%Y-%m-%d')
+            car['etat'] = 1  # Mark the car as rented
+        
         # Update the car document in the cars collection
         cars_collection.update_one({"num_imma": car_id}, {"$set": car})
 
@@ -114,3 +161,21 @@ def get_non_rented_cars():
     non_rented_cars = cars_collection.find({"etat": 0})  # Cars that are available
     return list(non_rented_cars)  # Convert the cursor to a list for easy handling
 
+# Function to add contact us message to the database
+def add_contact(first_name, last_name, email, message):
+    contact_us_data = {
+        "first_name": first_name,
+        "last_name": last_name,
+        "email": email,
+        "message": message
+    }
+    contact_us_collection.insert_one(contact_us_data)
+
+    # Function to add a testimonial to the database
+def add_testimonial(tenant_id, username, comment):
+    testimonial_data = {
+        "tenant_id": tenant_id,
+        "username": username,
+        "comment": comment
+    }
+    testimonials_collection.insert_one(testimonial_data)

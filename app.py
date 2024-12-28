@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask import Flask, flash, request, jsonify, render_template
-from models import get_all_cars
+from models import add_contact, add_testimonial, get_all_cars
 from models import add_car, cars_collection, get_renters_with_rented_cars,get_non_rented_cars, delete_car, update_car, get_car_by_id, get_all_cars, rent_car
 from flask import request, render_template, redirect, url_for
 import base64
@@ -15,14 +15,39 @@ client = MongoClient('mongodb://localhost:27017/')
 db = client['car_rental_db']  # The database for the car rental app
 cars_collection = db['voitures']
 tenants_collection = db['tenant']  # New tenants collection
+testimonials_collection = db.testimonials  # Collection for contact us messages
 
 @app.route('/')
 def index():
-    # Retrieve all cars from the database (or you can filter as needed)
     cars = list(cars_collection.find())
+    today = datetime.now()
     for car in cars:
-        car['_id'] = str(car['_id'])  # Convert ObjectId to string for JSON serialization
+        start_date_str = car.get('start_date')  # Using .get() to avoid KeyError
+        end_date_str = car.get('end_date')
+
+        # If the start_date or end_date are present, convert them to datetime objects
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d') if start_date_str else None
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else None
+        
+        if car['etat'] == 0:
+            car['status'] = 'available'
+            car['status_message'] = "Available"
+            car['status_color'] = "text-success"
+        elif start_date and today < start_date:
+            car['status'] = 'available_until'
+            car['status_message'] = f"Available on {start_date.strftime('%Y-%m-%d')}"
+            car['status_color'] = "text-gray"
+        elif end_date and today > end_date and car['etat'] != 0:
+            car['status'] = 'not_returned'
+            car['status_message'] = "Not returned yet"
+            car['status_color'] = "text-danger"
+        elif start_date and end_date and start_date <= today <= end_date:
+            car['status'] = 'rented'
+            car['status_message'] = f"Rented until {end_date.strftime('%Y-%m-%d')}"
+            car['status_color'] = "text-warning"
     return render_template('index.html', cars=cars)
+
+
 @app.route('/about')
 def about():
     return render_template('about.html')
@@ -37,7 +62,33 @@ def contact():
 
 @app.route('/listing')
 def listing():
-    return render_template('listing.html')
+    cars = list(cars_collection.find())
+    today = datetime.now()
+    for car in cars:
+        start_date_str = car.get('start_date')  # Using .get() to avoid KeyError
+        end_date_str = car.get('end_date')
+
+        # If the start_date or end_date are present, convert them to datetime objects
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d') if start_date_str else None
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else None
+        
+        if car['etat'] == 0:
+            car['status'] = 'available'
+            car['status_message'] = "Available"
+            car['status_color'] = "text-success"
+        elif start_date and today < start_date:
+            car['status'] = 'available_until'
+            car['status_message'] = f"Available on {start_date.strftime('%Y-%m-%d')}"
+            car['status_color'] = "text-gray"
+        elif end_date and today > end_date and car['etat'] != 0:
+            car['status'] = 'not_returned'
+            car['status_message'] = "Not returned yet"
+            car['status_color'] = "text-danger"
+        elif start_date and end_date and start_date <= today <= end_date:
+            car['status'] = 'rented'
+            car['status_message'] = f"Rented until {end_date.strftime('%Y-%m-%d')}"
+            car['status_color'] = "text-warning"
+    return render_template('listing.html', cars=cars)
 
 @app.route('/main')
 def main():
@@ -47,9 +98,35 @@ def main():
 def single():
     return render_template('single.html')
 
-@app.route('/testimonials')
+@app.route('/testimonials', methods=['POST', 'GET'])
 def testimonials():
-    return render_template('testimonials.html')
+    # Check if tenant is logged in by verifying the presence of tenant_id in the session
+    if 'tenant_id' not in session:
+        return redirect(url_for('enter'))  # Redirect to the login page if not logged in
+
+    if request.method == 'POST':
+        # Get the comment from the form
+        comment = request.form.get('comment')
+
+        if not comment:
+            return render_template('testimonials.html', tenant=session, error_message="Please enter a comment.")
+
+        # Get tenant_id and username from session
+        tenant_id = session['tenant_id']
+        username = session['username']
+
+        # Insert the testimonial into the database
+        add_testimonial(tenant_id, username, comment)
+
+        # Redirect to the same page with a success message
+        return redirect(url_for('testimonials'))
+
+    # Handle GET request to display the form and any messages
+    # Fetch all testimonials from the database to display on the page
+    testimonials_list = testimonials_collection.find()
+
+    return render_template('testimonials.html', tenant=session, testimonials=testimonials_list)
+
 
 
 @app.route('/managecar')
@@ -242,13 +319,20 @@ def rent_car_route(car_id):
         start_date = data.get('start_date', str(datetime.now().date()))  # Default: today
         end_date = data['end_date']
 
+        # Ensure that start_date and end_date are in the correct format
+        if isinstance(start_date, str):
+            start_date = start_date.strip()  # Strip any leading/trailing whitespaces
+        if isinstance(end_date, str):
+            end_date = end_date.strip()
+
         # Attempt to rent the car and update the car and tenant
         if rent_car(car_id, tenant, start_date, end_date):
-            return jsonify({"message": "Car rented successfully!"})
-        return jsonify({"error": "Car not available or not found"}), 404
+            return jsonify({"message": "Car rented successfully!"}), 200  # Success with status 200
+        return jsonify({"error": "Car not available or not found"}), 404  # Not found or unavailable
+
     except Exception as e:
         print(f"Error: {e}")  # Log any error
-        return jsonify({"error": "Something went wrong. Please try again."}), 500
+        return jsonify({"error": "Something went wrong. Please try again."}), 500  # Internal server error
 
 
 @app.route('/mycars', methods=['GET'])
@@ -417,27 +501,25 @@ def get_all_tenants():
         print(f"Error: {e}")  # Log any error
         return jsonify({"error": "Something went wrong. Please try again."}), 500
 
-@app.route('/contact_us', methods=['GET', 'POST'])
-def contact_us():
+@app.route('/contact_us', methods=['POST', 'GET'])
+def add_contact_us():
     if request.method == 'POST':
-        # Process the form data
+        # Get form data
         first_name = request.form.get('first_name')
         last_name = request.form.get('last_name')
         email = request.form.get('email')
         message = request.form.get('message')
 
-        # Example MongoDB insertion
-        new_contact = {
-            "first_name": first_name,
-            "last_name": last_name,
-            "email": email,
-            "message": message
-        }
-        mongo.db.contacts.insert_one(new_contact)
-        flash("Message sent successfully!", "success")
-        return redirect('/contact')
+        if not all([first_name, last_name, email, message]):
+            return render_template('contact.html', error_message="All fields are required.")
 
-    # Render the HTML form for GET requests
+        # Insert data into MongoDB
+        add_contact(first_name, last_name, email, message)
+
+        # Redirect to the same page and pass a success message
+        return redirect(url_for('add_contact_us', success_message="Thank you for your message!"))
+
+    # Handle GET request to display the form and success message
     return render_template('contact.html')
 
 

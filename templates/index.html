@@ -87,12 +87,13 @@
 
 /* Hero GIF styling */
 .hero {
-    background-size: cover; /* Resize GIF to fill the container */
-    background-position: center;
-    background-repeat: no-repeat; /* Prevent GIF from repeating */
-    width: 100%;
-    height: 100vh; /* Full viewport height */
+    background-size: cover; /* Resize the GIF to fill the container */
+    background-position: center; /* Center the GIF */
+    background-repeat: no-repeat; /* Prevent the GIF from repeating */
+    width: 100%;  /* Make the width 100% of the parent container */
+    height: calc(40vh - 40px - 50px); /* 100vh minus the height of the navbar (50px) and the 100px bottom margin */
     position: relative;
+    margin-top: 0px; /* Add the navbar height here (assuming 50px) */
     transition: background-image 1s ease-in-out;
 }
 
@@ -134,6 +135,7 @@
                     <nav class="site-navigation text-right ml-auto d-none d-lg-block" role="navigation">
                         <ul class="site-menu main-menu js-clone-nav ml-auto">
                             <li class="active"><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
+                            <li><a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a></li>
                             <li><a href="{{ url_for('listing') }}" class="nav-link">Listing</a></li>
                             <li><a href="{{ url_for('testimonials') }}" class="nav-link">Testimonials</a></li>
                             <li><a href="{{ url_for('blog') }}" class="nav-link">Blog</a></li>
@@ -231,28 +233,6 @@
         </div>
       </div>
       
-      <div class="site-section">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-lg-7 text-center order-lg-2">
-                    <div class="img-wrap-1 mb-5">
-                        <!-- <img src="images/feature_01.png" alt="Image" class="img-fluid"> -->
-                        <img src="{{ url_for('static', filename='images/feature_01.png') }}" alt="Image" class="img-fluid">
-                    </div>
-                </div>
-                <div class="col-lg-4 ml-auto order-lg-1">
-                    <h3 class="mb-4 section-heading"><strong>Take advantage of our exclusive car rental offers today!</strong></h3>
-                    <p class="mb-5">Looking for the perfect car to make your trip memorable? Our special deals make it easier than ever to rent the car of your dreams. Whether you're planning a weekend getaway or a long road trip, we offer affordable rates, top-notch customer service, and a wide selection of vehicles. Don't miss out on the opportunity to explore in style with our premium car rental services!</p>
-                    
-                    <p><a href="#" class="btn btn-primary">Explore Our Offers Now</a></p>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-
-      
-
       <div class="site-section bg-light">
         <div class="container">
             <div class="row">
@@ -262,61 +242,53 @@
                 </div>
             </div>
             <div class="row">
-                {% for car in cars %}
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="listing d-block align-items-stretch">
-                        <div class="listing-img h-100 mr-4" style="position: relative;">
-                            <!-- Display the first image initially -->
-                            <img 
-                                src="data:image/jpeg;base64,{{ car['images'][0] }}" 
-                                alt="Car Image" 
-                                class="img-fluid car-image" 
-                                id="car-image-{{ loop.index }}" 
-                                data-images="{{ car['images'] | join(',') }}" 
-                                data-current-index="0" 
-                                style="width: 300px; height: 200px; object-fit: cover; position: relative; top: 0%; opacity: 1;">
-    
-                            <!-- Left navigation button -->
-                            <button 
-                                class="btn btn-secondary btn-sm" 
-                                style="position: absolute; top: 50%; left: 5px; transform: translateY(-50%); z-index: 10; background-color: rgba(128, 128, 128, 0.6); border: none;"
-                                onclick="navigateCarImage('{{ loop.index }}', -1)">
-                                &#8249;
-                            </button>
-    
-                            <!-- Right navigation button -->
-                            <button 
-                                class="btn btn-secondary btn-sm" 
-                                style="position: absolute; top: 50%; right: 5px; transform: translateY(-50%); z-index: 10; background-color: rgba(128, 128, 128, 0.6); border: none;"
-                                onclick="navigateCarImage('{{ loop.index }}', 1)">
-                                &#8250;
-                            </button>
-                        </div>
-                        <div class="listing-contents h-100">
-                            <h3>{{ car['marque'] }} <br>{{ car['modele'] }}</h3>
-                            <div class="rent-price">
-                                <strong>${{ car['prix_location'] }}</strong><span class="mx-1">/</span>day
-                            </div>
-                            <div class="d-block d-md-flex mb-3 border-bottom pb-3">
-                                <div class="listing-feature pr-4">
-                                    <span class="caption">Kilometrage:</span>
-                                    <span class="number">{{ car['kilometrage'] }} km</span>
-                                </div>
-                            </div>
-                            <div>
-                                {% if car['etat'] == 0 %}
-                                <p class="text-success"><strong>Available</strong></p>
-                                {% else %}
-                                <p class="text-danger">
-                                    <strong>Rented until {{ car['end_date'] }} </strong><br>
-                                </p>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+              {% for car in cars %}
+              <div class="col-md-6 col-lg-4 mb-4">
+                  <div class="listing d-block align-items-stretch">
+                      <div class="listing-img h-100 mr-4" style="position: relative;">
+                          <img 
+                              src="data:image/jpeg;base64,{{ car['images'][0] }}" 
+                              alt="Car Image" 
+                              class="img-fluid car-image" 
+                              id="car-image-{{ loop.index }}" 
+                              data-images="{{ car['images'] | join(',') }}" 
+                              data-current-index="0" 
+                              style="width: 300px; height: 200px; object-fit: cover; position: relative; top: 0%; opacity: 1;">
+                          <button 
+                              class="btn btn-secondary btn-sm" 
+                              style="position: absolute; top: 50%; left: 5px; transform: translateY(-50%); z-index: 10; background-color: rgba(128, 128, 128, 0.6); border: none;"
+                              onclick="navigateCarImage('{{ loop.index }}', -1)">
+                              &#8249;
+                          </button>
+                          <button 
+                              class="btn btn-secondary btn-sm" 
+                              style="position: absolute; top: 50%; right: 5px; transform: translateY(-50%); z-index: 10; background-color: rgba(128, 128, 128, 0.6); border: none;"
+                              onclick="navigateCarImage('{{ loop.index }}', 1)">
+                              &#8250;
+                          </button>
+                      </div>
+                      <div class="listing-contents h-100">
+                          <h3>{{ car['marque'] }} <br>{{ car['modele'] }}</h3>
+                          <div class="rent-price">
+                              <strong>${{ car['prix_location'] }}</strong><span class="mx-1">/</span>day
+                          </div>
+                          <div class="d-block d-md-flex mb-3 border-bottom pb-3">
+                              <div class="listing-feature pr-4">
+                                  <span class="caption">Kilometrage:</span>
+                                  <span class="number">{{ car['kilometrage'] }} km</span>
+                              </div>
+                          </div>
+                          <div>
+                              <p class="{{ car['status_color'] }}">
+                                  <strong>{{ car['status_message'] }}</strong>
+                              </p>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+              {% endfor %}
+          </div>
+          
         </div>
     </div>
     
@@ -384,6 +356,24 @@
   
   
     
+<div class="site-section">
+  <div class="container">
+      <div class="row align-items-center">
+          <div class="col-lg-7 text-center order-lg-2">
+              <div class="img-wrap-1 mb-5">
+                  <!-- <img src="images/feature_01.png" alt="Image" class="img-fluid"> -->
+                  <img src="{{ url_for('static', filename='images/feature_01.png') }}" alt="Image" class="img-fluid">
+              </div>
+          </div>
+          <div class="col-lg-4 ml-auto order-lg-1">
+              <h3 class="mb-4 section-heading"><strong>Take advantage of our exclusive car rental offers today!</strong></h3>
+              <p class="mb-5">Looking for the perfect car to make your trip memorable? Our special deals make it easier than ever to rent the car of your dreams. Whether you're planning a weekend getaway or a long road trip, we offer affordable rates, top-notch customer service, and a wide selection of vehicles. Don't miss out on the opportunity to explore in style with our premium car rental services!</p>
+              
+              <p><a href="#" class="btn btn-primary">Explore Our Offers Now</a></p>
+          </div>
+      </div>
+  </div>
+</div>
 
 <div class="site-section">
   <div class="container">

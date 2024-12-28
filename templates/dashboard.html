@@ -67,13 +67,18 @@
 
               <nav class="site-navigation text-right ml-auto d-none d-lg-block" role="navigation">
                 <ul class="site-menu main-menu js-clone-nav ml-auto">
-                    <li class="active"><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
+                    <li ><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
+                    <li class="active"><a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a></li>
                     <li ><a href="{{ url_for('listing') }}" class="nav-link">Listing</a></li>
                     <li><a href="{{ url_for('testimonials') }}" class="nav-link">Testimonials</a></li>
                     <li><a href="{{ url_for('blog') }}" class="nav-link">Blog</a></li>
                     <li><a href="{{ url_for('about') }}" class="nav-link">About</a></li>
                     <li><a href="{{ url_for('contact') }}" class="nav-link">Contact</a></li>
-                    <li><a href="{{ url_for('login') }}" class="nav-link">logout</a></li>
+                    {% if tenant['tenant_id'] %}
+                    <li><a href="{{ url_for('login') }}" class="nav-link">Logout, {{ tenant['username'] }}! <!-- Check if tenant is logged in -->
+                        {% else %}
+                          <p>Not logged in.</p>
+                        {% endif %}</a></li>
                 </ul>
             </nav>            
             </div>
@@ -156,14 +161,14 @@
                 <form id="rentCarForm">
                     <div class="mb-3">
                         <label for="start_date" class="form-label">Start Date</label>
-                        <input type="date" class="form-control" id="start_date" name="start_date" required>
+                        <input type="date" class="form-control" id="start_date" name="start_date" required min="">
                     </div>
                     <div class="mb-3">
                         <label for="end_date" class="form-label">End Date</label>
-                        <input type="date" class="form-control" id="end_date" name="end_date" required>
+                        <input type="date" class="form-control" id="end_date" name="end_date" required min="">
                     </div>
                     <div id="confirmationMessage" class="alert alert-warning d-none">
-                        Are you sure you want to rent this car for <strong id="confirmationDays"></strong> days?
+                        Are you sure you want to rent this car for <strong id="confirmationDays"></strong>
                         <strong id="confirmationCost"></strong>?
                     </div>
                 </form>
@@ -177,40 +182,54 @@
 </div>
 
 <script>
-    // Open the rent car modal
-    function openRentCarModal(num_imma) {
-        window.currentCarNumImma = num_imma;
-        rentModal = new bootstrap.Modal(document.getElementById('rentCarModal'));
-        rentModal.show();
-        document.getElementById("start_date").value = '';
-        document.getElementById("end_date").value = '';
-        document.getElementById("confirmationMessage").classList.add('d-none');
-        document.getElementById("rentConfirmButton").disabled = true;
+// Open the rent car modal
+function openRentCarModal(num_imma) {
+    window.currentCarNumImma = num_imma;
+    rentModal = new bootstrap.Modal(document.getElementById('rentCarModal'));
+    rentModal.show();
+    document.getElementById("start_date").value = '';
+    document.getElementById("end_date").value = '';
+    document.getElementById("confirmationMessage").classList.add('d-none');
+    document.getElementById("rentConfirmButton").disabled = true;
+
+    // Set the minimum date for the start date to today
+    document.getElementById("start_date").setAttribute("min", new Date().toISOString().split("T")[0]);
+}
+
+// Check if dates are valid and display confirmation
+document.getElementById("start_date").addEventListener("change", checkDates);
+document.getElementById("end_date").addEventListener("change", checkDates);
+
+function checkDates() {
+    const start_date = document.getElementById("start_date").value;
+    const end_date = document.getElementById("end_date").value;
+
+    if (start_date) {
+        // Set the minimum end date to be one day after the start date
+        const startDate = new Date(start_date);
+        startDate.setDate(startDate.getDate() + 1); // Add one day to the start date
+        const minEndDate = startDate.toISOString().split("T")[0];
+        document.getElementById("end_date").setAttribute("min", minEndDate);
     }
 
-    // Check if dates are valid and display confirmation
-    document.getElementById("start_date").addEventListener("change", checkDates);
-    document.getElementById("end_date").addEventListener("change", checkDates);
+    if (start_date && end_date) {
+        const startDate = new Date(start_date);
+        const endDate = new Date(end_date);
 
-    function checkDates() {
-        const start_date = document.getElementById("start_date").value;
-        const end_date = document.getElementById("end_date").value;
-
-        if (start_date && end_date) {
-            const startDate = new Date(start_date);
-            const endDate = new Date(end_date);
-
-            if (endDate > startDate) {
-                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-                document.getElementById("confirmationDays").textContent = days;
-                document.getElementById("confirmationMessage").classList.remove('d-none');
-                document.getElementById("rentConfirmButton").disabled = false;
-            } else {
-                document.getElementById("confirmationMessage").classList.add('d-none');
-                document.getElementById("rentConfirmButton").disabled = true;
-            }
+        if (endDate > startDate) {
+            const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+            const dayText = days === 1 ? "day" : "days"; // Handle singular/plural form
+            
+            document.getElementById("confirmationDays").textContent = `${days} ${dayText}`;
+            document.getElementById("confirmationMessage").classList.remove('d-none');
+            document.getElementById("rentConfirmButton").disabled = false;
+        } else {
+            document.getElementById("confirmationMessage").classList.add('d-none');
+            document.getElementById("rentConfirmButton").disabled = true;
         }
     }
+}
+
 
     // Handle rent car confirmation
     document.getElementById("rentConfirmButton").addEventListener("click", rentCar);
@@ -339,16 +358,6 @@
 
 
 
-<!-- <div id="rentedCarsSection" class="site-section">
-    <div class="container">
-        <h3>Your Rented Cars:</h3><br>
-        <div class="row" id="rentedCarsList">
-        </div>
-    </div>
-</div> -->
-
-
-
 <script>
 const tenant_id = localStorage.getItem('tenant_id');
 if (tenant_id) {
@@ -403,12 +412,13 @@ if (tenant_id) {
                 <div class="listing-contents h-100">
                     <h3>${car.marque} ${car.modele}</h3>
                     <div class="rent-price">
-                        <strong>$${rentalFees}</strong><span class="mx-1">to today</span>
+                       <!--  <strong>$${rentalFees}</strong><span class="mx-1">to today</span>-->
+
                     </div>
                     <div class="d-block d-md-flex mb-3 border-bottom pb-3">
                         <div class="listing-feature pr-4">
                             <span class="caption"></span>
-                            <span class="number">${car.start_date}-${car.end_date}</span>
+                            <span class="number">${car.start_date} To ${car.end_date}</span>
                         </div>
                     </div>
 
