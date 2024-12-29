@@ -7,9 +7,6 @@ db = client['car_rental_db']  # The database for the car rental app
 cars_collection = db['voitures']
 contact_us_collection = db.contact_us  # Collection for contact us messages
 testimonials_collection = db.testimonials  # Collection for contact us messages
-
-# Cars collection
-cars_collection = db['voitures']
 tenant_collection = db['tenant']  # The tenant collection
 
 # Directly test the MongoDB query
@@ -61,28 +58,6 @@ def get_all_cars():
         car['_id'] = str(car['_id'])  # Convert ObjectId to string for JSON serialization
     return cars
 
-
-# def rent_car(car_id, tenant, start_date, end_date):
-#     # Find the car by its 'num_imma'
-#     car = cars_collection.find_one({"num_imma": car_id})
-    
-#     if car:
-#         # Update the car document with tenant and rental dates
-#         car['tenant'] = tenant
-#         car['start_date'] = start_date
-#         car['end_date'] = end_date
-#         car['etat'] = 1  # Mark the car as rented
-
-#         # Update the car document in the cars collection
-#         cars_collection.update_one({"num_imma": car_id}, {"$set": car})
-
-#         # Add the marque of the rented car to the tenant's record
-#         tenant_collection.update_one(
-#             {"_id": tenant["_id"]},  # Find the tenant by their unique ID
-#             {"$push": {"rented_cars": {"marque": car['marque']}}}  # Add the marque to rented_cars
-#         )
-#         return True
-#     return False
 
 def rent_car(car_id, tenant, start_date, end_date):
     # Convert string dates to datetime objects for comparison
@@ -171,11 +146,12 @@ def add_contact(first_name, last_name, email, message):
     }
     contact_us_collection.insert_one(contact_us_data)
 
-    # Function to add a testimonial to the database
+# Function to add a testimonial to the database
 def add_testimonial(tenant_id, username, comment):
     testimonial_data = {
         "tenant_id": tenant_id,
         "username": username,
-        "comment": comment
+        "comment": comment,
+        "etat": 0  # Default status is 'unapproved'
     }
     testimonials_collection.insert_one(testimonial_data)

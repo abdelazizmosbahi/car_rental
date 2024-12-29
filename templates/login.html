@@ -146,41 +146,41 @@
 
     <!-- AJAX form submission script -->
     <script>
-        $(document).ready(function() {
-            // Trigger form submit when the login button is clicked
-            $('#loginButton').on('click', function() {
-                // Trigger form submission when the login button is clicked
-                $('#enterForm').submit();
-            });
+      $(document).ready(function() {
+    // Trigger form submit when the login button is clicked
+    $('#loginButton').on('click', function() {
+        // Trigger form submission when the login button is clicked
+        $('#enterForm').submit();
+    });
 
-            // Handle the form submission via AJAX
-            $('#enterForm').on('submit', function(e) {
-                e.preventDefault();  // Prevent the default form submission
-                
-                var formData = $(this).serialize();  // Get the form data
-    
-                $.ajax({
-                    type: 'POST',
-                    url: '/enter',  // Change this to your backend login URL
-                    data: formData,
-                    success: function(response) {
-                        // If valid, save tenant ID to local storage and redirect
-                        if (response.success) {
-                            // Save tenant ID in local storage
-                            localStorage.setItem('tenant_id', response.tenant_id); // Store tenant ID
-    
-                            // Redirect to the dashboard (replace with your URL)
-                            window.location.href = "/dashboard";
-                        } else {
-                            alert(response.message);  // Show error message
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        alert('An error occurred: ' + xhr.responseText);
-                    }
-                });
-            });
+    // Handle the form submission via AJAX
+    $('#enterForm').on('submit', function(e) {
+        e.preventDefault();  // Prevent the default form submission
+        
+        var formData = $(this).serialize();  // Get the form data
+
+        $.ajax({
+            type: 'POST',
+            url: '/enter',  // This is your Flask backend login URL
+            data: formData,
+            success: function(response) {
+                // If login is successful, handle redirection
+                if (response.success) {
+                    // Save tenant ID in local storage (optional)
+                    localStorage.setItem('tenant_id', response.tenant_id); 
+
+                    // Redirect to the appropriate dashboard based on the role
+                    window.location.href = response.redirect_url;
+                } else {
+                    alert(response.message);  // Show error message if login fails
+                }
+            },
+            error: function(xhr, status, error) {
+                alert('An error occurred: ' + xhr.responseText);
+            }
         });
+    });
+});
     </script>
 </body>
 </html>

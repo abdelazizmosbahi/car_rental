@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <title>CarRental &mdash; Free Website Template by Colorlib</title>
+    <title>ExoticDrive</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
@@ -123,7 +123,7 @@
             <div class="row align-items-center position-relative">
                 <div class="col-3">
                     <div class="site-logo">
-                        <a href="index.html"><strong>CarRental</strong></a>
+                        <a href="index.html"><strong>ExoticDrive</strong></a>
                     </div>
                 </div>
                 <div class="col-9 text-right">
@@ -135,10 +135,8 @@
                     <nav class="site-navigation text-right ml-auto d-none d-lg-block" role="navigation">
                         <ul class="site-menu main-menu js-clone-nav ml-auto">
                             <li class="active"><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
-                            <li><a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a></li>
                             <li><a href="{{ url_for('listing') }}" class="nav-link">Listing</a></li>
                             <li><a href="{{ url_for('testimonials') }}" class="nav-link">Testimonials</a></li>
-                            <li><a href="{{ url_for('blog') }}" class="nav-link">Blog</a></li>
                             <li><a href="{{ url_for('about') }}" class="nav-link">About</a></li>
                             <li><a href="{{ url_for('contact') }}" class="nav-link">Contact</a></li>
                             <li><a href="{{ url_for('login') }}" class="nav-link">Login</a></li>
@@ -393,7 +391,7 @@
           <div class="service-1-contents">
             <h3>Convenient Pickup Locations</h3>
             <p>Pick up your rental car at convenient locations near you, including airports, city centers, and popular travel hubs, for an easy start to your journey.</p>
-            <p class="mb-0"><a href="#">Learn more</a></p>
+            <!-- <p class="mb-0"><a href="#">Learn more</a></p> -->
           </div>
         </div>
       </div>
@@ -405,7 +403,7 @@
           <div class="service-1-contents">
             <h3>Well-Maintained Fleet</h3>
             <p>Choose from a fleet of well-maintained, high-quality vehicles to suit your needs. Whether you're looking for a compact car or an SUV, we’ve got you covered.</p>
-            <p class="mb-0"><a href="#">Learn more</a></p>
+            <!-- <p class="mb-0"><a href="#">Learn more</a></p> -->
           </div>
         </div>
       </div>
@@ -417,7 +415,7 @@
           <div class="service-1-contents">
             <h3>24/7 Customer Support</h3>
             <p>Our dedicated customer support team is available 24/7 to assist you with any questions or issues during your car rental experience. We’re here for you, anytime.</p>
-            <p class="mb-0"><a href="#">Learn more</a></p>
+            <!-- <p class="mb-0"><a href="#">Learn more</a></p> -->
           </div>
         </div>
       </div>
@@ -430,7 +428,7 @@
           <div class="service-1-contents">
             <h3>Secure & Reliable</h3>
             <p>Rest assured that your rental car comes with full insurance coverage, ensuring your peace of mind during your trip.</p>
-            <p class="mb-0"><a href="#">Learn more</a></p>
+            <!-- <p class="mb-0"><a href="#">Learn more</a></p> -->
           </div>
         </div>
       </div>
@@ -442,7 +440,7 @@
           <div class="service-1-contents">
             <h3>Easy Online Booking</h3>
             <p>Booking your rental car has never been easier. Use our simple online platform to reserve your car in just a few clicks, and enjoy a smooth rental process.</p>
-            <p class="mb-0"><a href="#">Learn more</a></p>
+            <!-- <p class="mb-0"><a href="#">Learn more</a></p> -->
           </div>
         </div>
       </div>
@@ -454,7 +452,7 @@
           <div class="service-1-contents">
             <h3>Flexible Rental Terms</h3>
             <p>We offer flexible rental terms to fit your travel plans. Choose from daily, weekly, or monthly rentals based on your needs, with the option to extend your rental period.</p>
-            <p class="mb-0"><a href="#">Learn more</a></p>
+            <!-- <p class="mb-0"><a href="#">Learn more</a></p> -->
           </div>
         </div>
       </div>
@@ -472,48 +470,23 @@
       </div>
     </div>
     <div class="row">
-      <div class="col-lg-4 mb-4 mb-lg-0">
+      {% for testimonial in testimonials %}
+      <div class="col-lg-4 mb-4">
         <div class="testimonial-2">
-          <blockquote class="mb-4">
-            <p>"The car rental process was so smooth! I was able to pick up my car quickly, and it was in excellent condition. I will definitely use this service again for my future trips."</p>
-          </blockquote>
-          <div class="d-flex v-card align-items-center">
-            <img src="{{ url_for('static', filename='images/person_1.jpg') }}" alt="Image" class="img-fluid mr-3">
-            <div class="author-name">
-              <span class="d-block">Mike Fisher</span>
-              <span>Owner, Ford</span>
+            <blockquote class="mb-4">
+                <p>"{{ testimonial['comment'] }}"</p>
+            </blockquote>
+            <div class="d-flex v-card align-items-center">
+                <div class="author-name">
+                    <span class="d-block">{{ testimonial['username'] }}</span>
+                    <span>Customer</span> <!-- You can adjust this label as needed -->
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-      <div class="col-lg-4 mb-4 mb-lg-0">
-        <div class="testimonial-2">
-          <blockquote class="mb-4">
-            <p>"I had a fantastic experience renting a car for my vacation. The vehicle was clean, comfortable, and reliable. The booking process was easy, and I received all the support I needed."</p>
-          </blockquote>
-          <div class="d-flex v-card align-items-center">
-            <img src="{{ url_for('static', filename='images/person_2.jpg') }}" alt="Image" class="img-fluid mr-3">
-            <div class="author-name">
-              <span class="d-block">Jean Stanley</span>
-              <span>Traveler</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-lg-4 mb-4 mb-lg-0">
-        <div class="testimonial-2">
-          <blockquote class="mb-4">
-            <p>"I had an amazing rental experience! The customer service was outstanding, and the car was perfect for my needs. It made my trip much easier and more enjoyable."</p>
-          </blockquote>
-          <div class="d-flex v-card align-items-center">
-            <img src="{{ url_for('static', filename='images/person_3.jpg') }}" alt="Image" class="img-fluid mr-3">
-            <div class="author-name">
-              <span class="d-block">Katie Rose</span>
-              <span>Customer</span>
-            </div>
-          </div>
-        </div>
-      </div>
+    </div>
+{% endfor %}
+     
+      
     </div>
   </div>
 </div>

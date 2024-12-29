@@ -59,7 +59,7 @@
           <div class="row align-items-center position-relative">
             <div class="col-3">
               <div class="site-logo">
-                <a href="{{ url_for('dashboard') }}"><strong>CarRental</strong></a>
+                <a href="#"><strong>ExoticDrive</strong></a>
               </div>
             </div>
             <div class="col-9  text-right">
@@ -67,13 +67,8 @@
 
               <nav class="site-navigation text-right ml-auto d-none d-lg-block" role="navigation">
                 <ul class="site-menu main-menu js-clone-nav ml-auto">
-                    <li ><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
                     <li class="active"><a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a></li>
-                    <li ><a href="{{ url_for('listing') }}" class="nav-link">Listing</a></li>
                     <li><a href="{{ url_for('testimonials') }}" class="nav-link">Testimonials</a></li>
-                    <li><a href="{{ url_for('blog') }}" class="nav-link">Blog</a></li>
-                    <li><a href="{{ url_for('about') }}" class="nav-link">About</a></li>
-                    <li><a href="{{ url_for('contact') }}" class="nav-link">Contact</a></li>
                     {% if tenant['tenant_id'] %}
                     <li><a href="{{ url_for('login') }}" class="nav-link">Logout, {{ tenant['username'] }}! <!-- Check if tenant is logged in -->
                         {% else %}
