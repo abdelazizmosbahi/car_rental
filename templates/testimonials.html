@@ -73,7 +73,7 @@
                     <li><a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a></li>
                     <li class="active"><a href="{{ url_for('testimonials') }}" class="nav-link">Testimonials</a></li>
                     {% if tenant['tenant_id'] %}
-                    <li><a href="{{ url_for('login') }}" class="nav-link">Logout, {{ tenant['username'] }}! <!-- Check if tenant is logged in -->
+                    <li><a href="{{ url_for('index') }}" class="nav-link">Logout, {{ tenant['username'] }}! <!-- Check if tenant is logged in -->
                         {% else %}
                           <p>Not logged in.</p>
                         {% endif %}</a></li>

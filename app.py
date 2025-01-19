@@ -8,7 +8,6 @@ import base64
 from pymongo import MongoClient
 from flask import session, jsonify, render_template, request, redirect, url_for
 
-
 app = Flask(__name__)
 app.secret_key = 'c8c40dba715a170e1b8d094200273e12' 
 
@@ -22,23 +21,16 @@ contact_us_collection = db.contact_us  # Collection for contact us messages
 
 @app.route('/')
 def index():
-    """
-    Displays the landing page with car details and testimonials.
-    """
-    # Fetch cars data
     cars = list(cars_collection.find())
     today = datetime.now()
-
-    # Process car data for status and display information
     for car in cars:
         start_date_str = car.get('start_date')  # Using .get() to avoid KeyError
         end_date_str = car.get('end_date')
 
-        # Convert dates to datetime objects if present
+        # If the start_date or end_date are present, convert them to datetime objects
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d') if start_date_str else None
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else None
-
-        # Set car status based on dates and state
+        
         if car['etat'] == 0:
             car['status'] = 'available'
             car['status_message'] = "Available"
@@ -55,36 +47,20 @@ def index():
             car['status'] = 'rented'
             car['status_message'] = f"Rented until {end_date.strftime('%Y-%m-%d')}"
             car['status_color'] = "text-warning"
-
-    # Fetch testimonials from the database
-    testimonials = list(testimonials_collection.find())
-
-    # Pass cars and testimonials to the template
-    return render_template('index.html', cars=cars, testimonials=testimonials)
-
+    return render_template('index.html', cars=cars)
 
 
 @app.route('/about')
 def about():
     return render_template('about.html')
 
+@app.route('/blog')
+def blog():
+    return render_template('blog.html')
 
 @app.route('/contact')
 def contact():
     return render_template('contact.html')
-
-@app.route('/admincontact')
-def admincontact():
-    # Check if tenant is logged in by verifying the presence of tenant_id in the session
-    if 'tenant_id' not in session:
-        return redirect(url_for('enter'))  # Redirect to the login page if not logged in
-
-    # Fetch all contact messages from the database
-    contact_messages = contact_us_collection.find()
-
-    # Render the template and pass the contact messages to it
-    return render_template('admincontact.html', tenant=session, contact_messages=contact_messages)
-
 
 @app.route('/listing')
 def listing():
@@ -120,6 +96,39 @@ def listing():
 def main():
     return render_template('main.html')
 
+@app.route('/single')
+def single():
+    return render_template('single.html')
+
+
+@app.route('/testi', methods=['POST', 'GET'])
+def testi():
+    # Check if tenant is logged in by verifying the presence of tenant_id in the session
+    if 'tenant_id' not in session:
+        return redirect(url_for('enter'))  # Redirect to the login page if not logged in
+
+    if request.method == 'POST':
+        # Get the comment from the form
+        comment = request.form.get('comment')
+
+        if not comment:
+            return render_template('testimonials.html', tenant=session, error_message="Please enter a comment.")
+
+        # Get tenant_id and username from session
+        tenant_id = session['tenant_id']
+        username = session['username']
+
+        # Insert the testimonial into the database
+        add_testimonial(tenant_id, username, comment)
+
+        # Redirect to the same page with a success message
+        return redirect(url_for('testimonials'))
+
+    # Handle GET request to display the form and any messages
+    # Fetch all testimonials from the database to display on the page
+    testimonials_list = testimonials_collection.find()
+
+    return render_template('testi.html', tenant=session, testimonials=testimonials_list)
 
 @app.route('/testimonials', methods=['POST', 'GET'])
 def testimonials():
@@ -151,72 +160,6 @@ def testimonials():
     return render_template('testimonials.html', tenant=session, testimonials=testimonials_list)
 
 
-@app.route('/admintestimonials/manage/<action>/<testimonial_id>', methods=['POST'])
-def manage_testimonial(action, testimonial_id):
-    print(f"Received testimonial_id: {testimonial_id}")  # Temporary debug print
-
-    # Ensure the user is an admin
-    if 'tenant_id' not in session or session.get('role') != 'admin':
-        return redirect(url_for('enter'))  # Redirect if not logged in as admin
-
-    try:
-        # Convert testimonial_id to ObjectId
-        testimonial_id = ObjectId(testimonial_id)
-    except Exception as e:
-        print(f"Error converting testimonial_id to ObjectId: {e}")
-        return "Invalid Testimonial ID", 400  # Invalid ObjectId format
-
-    # Fetch the testimonial from the database
-    testimonial = testimonials_collection.find_one({'_id': testimonial_id})
-
-    if not testimonial:
-        print(f"Testimonial with ID {testimonial_id} not found.")
-        return "Testimonial not found", 404  # If no testimonial is found
-
-    if action == 'approve':
-        # Approve the testimonial (set 'etat' to 1)
-        testimonials_collection.update_one(
-            {'_id': testimonial['_id']},
-            {'$set': {'etat': 1}}
-        )
-        return redirect(url_for('admintestimonials'))  # Redirect back to the admin testimonials page
-
-    elif action == 'delete':
-        # Delete the testimonial
-        testimonials_collection.delete_one({'_id': testimonial['_id']})
-        return redirect(url_for('admintestimonials'))  # Redirect back to the admin testimonials page
-
-    return "Method Not Allowed", 405  # If the action isn't approve or delete
-
-
-@app.route('/admintestimonials', methods=['POST', 'GET'])
-def admintestimonials():
-    # Check if tenant is logged in by verifying the presence of tenant_id in the session
-    if 'tenant_id' not in session:
-        return redirect(url_for('enter'))  # Redirect to the login page if not logged in
-
-    if request.method == 'POST':
-        # Get the comment from the form
-        comment = request.form.get('comment')
-
-        if not comment:
-            return render_template('admintestimonials.html', tenant=session, error_message="Please enter a comment.")
-
-        # Get tenant_id and username from session
-        tenant_id = session['tenant_id']
-        username = session['username']
-
-        # Insert the testimonial into the database
-        add_testimonial(tenant_id, username, comment)
-
-        # Redirect to the same page with a success message
-        return redirect(url_for('admintestimonials'))
-
-    # Handle GET request to display the form and any messages
-    # Fetch all testimonials from the database to display on the page
-    testimonials_list = testimonials_collection.find()
-
-    return render_template('admintestimonials.html', tenant=session, testimonials=testimonials_list)
 
 @app.route('/managecar')
 def managecar():
@@ -235,6 +178,123 @@ def managecar():
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d') if start_date_str else None
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else None
     return render_template('managecar.html', tenant=session, cars=cars,  success_message=request.args.get('success_message'))
+
+@app.route('/users')
+def users():
+    return render_template('users.html', tenant=session)
+# auth
+@app.route('/signup')
+def signup():
+    return render_template('signup.html')
+
+@app.route('/login')
+def login():
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()  # Clears the session
+    return redirect(url_for('enter'))  # Redirect to the login page
+
+
+@app.route('/dashboard')
+def dashboard():
+    # Check if tenant is logged in by verifying the presence of tenant_id in the session
+    if 'tenant_id' not in session:
+        return redirect(url_for('enter'))  # Redirect to the login page if not logged in
+
+    # Retrieve only cars with etat = 0 (available cars) from the database
+    available_cars = list(cars_collection.find({'etat': 0}))
+    for car in available_cars:
+        car['_id'] = str(car['_id'])  # Convert ObjectId to string for JSON serialization
+
+    # Pass available cars and tenant info (from session) to the template
+    return render_template('dashboard.html', cars=available_cars, tenant=session)
+
+# Function to add a tenant
+@app.route('/add_tenant', methods=['POST'])
+def add_tenant():
+    username = request.form.get('username')
+    p = request.form.get('p')
+    role = request.form.get('role', 'tenant')  # Default role is 'tenant'
+    
+    if not username or not p:
+        return jsonify({'message': 'Username and password are required!'}), 400
+
+    tenant = {
+        'username': username,
+        'p': p,
+        'role': role,
+        'rented_cars': []  # Initialize an empty list for rented cars
+    }
+    
+    # Insert tenant into the tenants collection
+    tenants_collection.insert_one(tenant)
+    
+    return jsonify({'message': 'Tenant added successfully!'}), 201
+
+@app.route('/enter', methods=['GET', 'POST'])
+def enter():
+    if request.method == 'GET':
+        return render_template('enter.html')
+
+    # POST request to verify username and password
+    username = request.form.get('username')
+    p = request.form.get('p')
+
+    # Find user in the database (tenant or admin)
+    user = tenants_collection.find_one({'username': username, 'p': p})
+
+    if user:
+        # If the user exists, store the user's ID and role in the session
+        session['tenant_id'] = str(user['_id'])  # Store user ID in session
+        session['username'] = user['username']  # Optional: store username
+        session['role'] = user.get('role', 'tenant')  # Default role is 'tenant'
+
+        # Redirect based on role
+        if session['role'] == 'admin':
+            return jsonify({'success': True, 'redirect_url': url_for('admindash')}), 200
+        else:
+            return jsonify({'success': True, 'redirect_url': url_for('dashboard')}), 200
+    else:
+        # If credentials are incorrect
+        return jsonify({'success': False, 'message': 'Invalid username or password!'}), 401
+
+# end auth
+@app.route('/add_car', methods=['POST'])
+def add_car_route():
+    num_imma = request.form.get('num_imma')
+    marque = request.form.get('marque')
+    modele = request.form.get('modele')
+    kilometrage = request.form.get('kilometrage')
+    prix_location = request.form.get('prix_location')
+
+    # Handling images
+    images = []
+    image_files = request.files.getlist('images')
+    for img in image_files:
+        # Read image binary data and encode it in base64
+        encoded_image = base64.b64encode(img.read()).decode('utf-8')
+        images.append(encoded_image)
+
+    # Add car to database
+    add_car(num_imma, marque, modele, kilometrage, 0, prix_location, images)
+
+    # Set session flag indicating car was successfully added
+    session['car_added'] = True
+
+    # Return the car details as part of the response
+    return jsonify({
+        "message": "Car added successfully!",
+        "car": {
+            "num_imma": num_imma,
+            "marque": marque,
+            "modele": modele,
+            "kilometrage": kilometrage,
+            "prix_location": prix_location,
+            "images": images
+        }
+    }), 200
 
 @app.route('/admindash')
 def admindash():
@@ -276,136 +336,84 @@ def admindash():
     testimonials = list(testimonials_collection.find())
     return render_template('admindash.html', tenant=session, cars=cars)
 
-@app.route('/users')
-def users():
-        # Check if tenant is logged in by verifying the presence of tenant_id in the session
-    if 'tenant_id' not in session:
-        return redirect(url_for('enter'))  # Redirect to the login page if not logged in
-    return render_template('users.html', tenant=session)
-# auth
-@app.route('/signup')
-def signup():
-    return render_template('signup.html')
+@app.route('/admintestimonials/manage/<action>/<testimonial_id>', methods=['POST'])
+def manage_testimonial(action, testimonial_id):
+    print(f"Received testimonial_id: {testimonial_id}")  # Temporary debug print
 
-@app.route('/login')
-def login():
-    return render_template('login.html')
+    # Ensure the user is an admin
+    if 'tenant_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('enter'))  # Redirect if not logged in as admin
 
-@app.route('/logout')
-def logout():
-    session.clear()  # Clears the session
-    return redirect(url_for('logout.html'))  # Redirect to the login page
+    try:
+        # Convert testimonial_id to ObjectId
+        testimonial_id = ObjectId(testimonial_id)
+    except Exception as e:
+        print(f"Error converting testimonial_id to ObjectId: {e}")
+        return "Invalid Testimonial ID", 400  # Invalid ObjectId format
+
+    # Fetch the testimonial from the database
+    testimonial = testimonials_collection.find_one({'_id': testimonial_id})
+
+    if not testimonial:
+        print(f"Testimonial with ID {testimonial_id} not found.")
+        return "Testimonial not found", 404  # If no testimonial is found
+
+    if action == 'approve':
+        # Approve the testimonial (set 'etat' to 1)
+        testimonials_collection.update_one(
+            {'_id': testimonial['_id']},
+            {'$set': {'etat': 1}}
+        )
+        return redirect(url_for('admintestimonials'))  # Redirect back to the admin testimonials page
+
+    elif action == 'delete':
+        # Delete the testimonial
+        testimonials_collection.delete_one({'_id': testimonial['_id']})
+        return redirect(url_for('admintestimonials'))  # Redirect back to the admin testimonials page
+
+    return "Method Not Allowed", 405  # If the action isn't approve or delete
 
 
-@app.route('/dashboard')
-def dashboard():
+@app.route('/admincontact')
+def admincontact():
     # Check if tenant is logged in by verifying the presence of tenant_id in the session
     if 'tenant_id' not in session:
         return redirect(url_for('enter'))  # Redirect to the login page if not logged in
 
-    # Retrieve only cars with etat = 0 (available cars) from the database
-    available_cars = list(cars_collection.find({'etat': 0}))
-    for car in available_cars:
-        car['_id'] = str(car['_id'])  # Convert ObjectId to string for JSON serialization
+    # Fetch all contact messages from the database
+    contact_messages = contact_us_collection.find()
 
-    # Pass available cars and tenant info (from session) to the template
-    return render_template('dashboard.html', cars=available_cars, tenant=session)
+    # Render the template and pass the contact messages to it
+    return render_template('admincontact.html', tenant=session, contact_messages=contact_messages)
 
-# Function to add a tenant
-@app.route('/add_tenant', methods=['POST'])
-def add_tenant():
-    username = request.form.get('username')
-    p = request.form.get('p')
-    role = request.form.get('role', 'tenant')  # Default role is 'tenant'
-    
-    if not username or not p:
-        return jsonify({'message': 'Username and password are required!'}), 400
+@app.route('/admintestimonials', methods=['POST', 'GET'])
+def admintestimonials():
+    # Check if tenant is logged in by verifying the presence of tenant_id in the session
+    if 'tenant_id' not in session:
+        return redirect(url_for('enter'))  # Redirect to the login page if not logged in
 
-    tenant = {
-        'username': username,
-        'p': p,
-        'role': role,
-        'rented_cars': []  # Initialize an empty list for rented cars
-    }
-    
-    # Insert tenant into the tenants collection
-    tenants_collection.insert_one(tenant)
-    
-    return jsonify({'message': 'Tenant added successfully!'}), 201
+    if request.method == 'POST':
+        # Get the comment from the form
+        comment = request.form.get('comment')
 
+        if not comment:
+            return render_template('admintestimonials.html', tenant=session, error_message="Please enter a comment.")
 
-@app.route('/enter', methods=['GET', 'POST'])
-def enter():
-    if request.method == 'GET':
-        return render_template('enter.html')
+        # Get tenant_id and username from session
+        tenant_id = session['tenant_id']
+        username = session['username']
 
-    # POST request to verify username and password
-    username = request.form.get('username')
-    p = request.form.get('p')
+        # Insert the testimonial into the database
+        add_testimonial(tenant_id, username, comment)
 
-    # Find tenant in the database
-    tenant = tenants_collection.find_one({'username': username, 'p': p})
+        # Redirect to the same page with a success message
+        return redirect(url_for('admintestimonials'))
 
-    if tenant:
-        # If the tenant exists, store the tenant's ID in the session
-        session['tenant_id'] = str(tenant['_id'])  # Store tenant ID in session
-        session['username'] = tenant['username']  # Optional: store other info like username
-        session['role'] = tenant['role']  # Store tenant's role in session
+    # Handle GET request to display the form and any messages
+    # Fetch all testimonials from the database to display on the page
+    testimonials_list = testimonials_collection.find()
 
-        # Return a response with the role and redirect URL
-        if tenant['role'] == 'admin':
-            return jsonify({'success': True, 'tenant_id': str(tenant['_id']), 'redirect_url': '/admindash'})
-        else:
-            return jsonify({'success': True, 'tenant_id': str(tenant['_id']), 'redirect_url': '/dashboard'})
-        
-    else:
-        # If the tenant doesn't exist or credentials are wrong
-        return jsonify({'success': False, 'message': 'Invalid username or password!'}), 401
-
-
-# end auth
-# @app.route('/add_car', methods=['POST'])
-# def add_car_route():
-#     num_imma = request.form.get('num_imma')
-#     marque = request.form.get('marque')
-#     modele = request.form.get('modele')
-#     kilometrage = request.form.get('kilometrage')
-#     prix_location = request.form.get('prix_location')
-
-#     # Handling images
-#     images = []
-#     image_files = request.files.getlist('images')
-#     for img in image_files:
-#         # Read image binary data and encode it in base64
-#         encoded_image = base64.b64encode(img.read()).decode('utf-8')
-#         images.append(encoded_image)
-
-#     add_car(num_imma, marque, modele, kilometrage, 0, prix_location, images)
-#     # Check if tenant is logged in by verifying the presence of tenant_id in the session
-#     if 'tenant_id' not in session:
-#         return redirect(url_for('enter'))  # Redirect to the login page if not logged in
-#     # Render the same form page with success message
-#     return render_template('managecar.html',tenant=session, success_message="Car added successfully!")
-@app.route('/add_car', methods=['POST'])
-def add_car_route():
-    num_imma = request.form.get('num_imma')
-    marque = request.form.get('marque')
-    modele = request.form.get('modele')
-    kilometrage = request.form.get('kilometrage')
-    prix_location = request.form.get('prix_location')
-
-    # Handling images and other logic
-    images = []
-    image_files = request.files.getlist('images')
-    for img in image_files:
-        encoded_image = base64.b64encode(img.read()).decode('utf-8')
-        images.append(encoded_image)
-
-    # Add the car (implement the add_car logic here)
-    add_car(num_imma, marque, modele, kilometrage, 0, prix_location, images)
-
-    # After adding the car, redirect to the managecar page with a success message
-    return redirect(url_for('managecar'))
+    return render_template('admintestimonials.html', tenant=session, testimonials=testimonials_list)
 
 @app.route('/delete_car/<string:num_imma>', methods=['DELETE'])
 def delete_car(num_imma):
@@ -476,37 +484,32 @@ def get_all_cars():
             car['tenant'] = None  # Set tenant to None if the car is not rented
     return jsonify(cars)
 
-
 @app.route('/rent_car/<car_id>', methods=['PUT'])
 def rent_car_route(car_id):
     try:
-        # Get the data from the request body
-        data = request.json  # Tenant info and dates
-        print(f"Received data: {data}")  # Debug print
-        
-        # Tenant info and rental dates from the request
+        # Parse request data
+        data = request.json
         tenant = {
-            "_id": data['_id'],  # Tenant ID
-            "username": data['username'],
+            "_id": data['_id'],
+            "username": data['username']
         }
-        start_date = data.get('start_date', str(datetime.now().date()))  # Default: today
+        start_date = data.get('start_date', str(datetime.now().date()))
         end_date = data['end_date']
 
-        # Ensure that start_date and end_date are in the correct format
-        if isinstance(start_date, str):
-            start_date = start_date.strip()  # Strip any leading/trailing whitespaces
-        if isinstance(end_date, str):
-            end_date = end_date.strip()
+        # Attempt to rent the car
+        rental_success = rent_car(car_id, tenant, start_date, end_date)
 
-        # Attempt to rent the car and update the car and tenant
-        if rent_car(car_id, tenant, start_date, end_date):
-            return jsonify({"message": "Car rented successfully!"}), 200  # Success with status 200
-        return jsonify({"error": "Car not available or not found"}), 404  # Not found or unavailable
+        if rental_success:
+            # Send success response and exit
+            return jsonify({"message": "Car rented successfully!"}), 200
+
+        # Send error response for car not available or not found
+        return jsonify({"error": "Car not available or not found"}), 404
 
     except Exception as e:
-        print(f"Error: {e}")  # Log any error
-        return jsonify({"error": "Something went wrong. Please try again."}), 500  # Internal server error
-
+        # Handle unexpected errors
+        print(f"Error: {e}")
+        return jsonify({"error": "Something went wrong. Please try again."}), 500
 
 @app.route('/mycars', methods=['GET'])
 def my_cars():
@@ -597,14 +600,44 @@ def return_car_route(car_num_imma):
     Route to return a rented car and set it as available.
     """
     car = cars_collection.find_one({"num_imma": car_num_imma})
-    if car and car['etat'] == 1:
-        # Set car as available and clear tenant info
-        cars_collection.update_one(
+    if car and car['etat'] == 1:  # Check if car is rented (etat == 1 means rented)
+        start_date = car['start_date']
+        end_date = car['end_date']
+        
+        # Calculate the number of days the car was rented
+        start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+        
+        rented_days = (end_date_obj - start_date_obj).days
+        rental_fees = rented_days * car['prix_location']
+
+        # Calculate if the car was returned late
+        extra_fee = 0
+        if datetime.now() > end_date_obj:
+            late_days = (datetime.now() - end_date_obj).days
+            rental_fees += late_days * car['prix_location'] * 2  # Extra late fee
+            extra_fee = late_days * car['prix_location'] * 2
+
+        # Update the car's status in the database
+        update_result = cars_collection.update_one(
             {"num_imma": car_num_imma},
-            {"$set": {"etat": 0, "tenant": {}, "start_date": None, "end_date": None}}
+            {"$set": {
+                "etat": 0,  # Set car as available
+                "tenant": {},  # Clear tenant info
+                "start_date": None,  # Reset start date
+                "end_date": None,  # Reset end date
+                "total": car.get('total', 0) + rental_fees  # Update total rental cost
+            }}
         )
-        return jsonify({"message": "Car returned successfully and set as available!"})
+
+        if update_result.modified_count > 0:
+            return jsonify({
+                "message": f"Car returned successfully! Rental fees: ${rental_fees:.2f}. Extra fee: ${extra_fee:.2f} for {late_days} late days. Total updated: ${car['total'] + rental_fees:.2f}."
+            })
+        else:
+            return jsonify({"error": "Failed to update car information."}), 500
     return jsonify({"error": "Car not found or not rented."}), 404
+
 
 @app.route('/return_my_car/<car_num_imma>', methods=['PUT'])
 def return_my_car(car_num_imma):
@@ -624,7 +657,7 @@ def return_my_car(car_num_imma):
             rental_fees += late_days * car['prix_location'] * 2  # Extra charge for late return
             extra_fee = late_days * car['prix_location'] * 2
 
-        # Ensure that the total amount is calculated as an integer or float
+        # Convert total to float to ensure correct addition
         total_amount = float(car['total']) + rental_fees  # Ensure total is a float
 
         # Update the car in the database with the new total cost and other necessary fields
@@ -648,6 +681,7 @@ def return_my_car(car_num_imma):
             return jsonify({"error": "Failed to update car information."}), 500
 
     return jsonify({"error": "Car not found or not rented."}), 404
+
 
 # list of all tenants
 @app.route('/get_all_tenants', methods=['GET'])
@@ -694,9 +728,6 @@ def add_contact_us():
 
     # Handle GET request to display the form and success message
     return render_template('contact.html')
-
-
-
 
 
 if __name__ == '__main__':

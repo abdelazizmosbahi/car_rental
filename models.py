@@ -26,11 +26,12 @@ def add_car(num_imma, marque, modele, kilometrage, etat, prix_location, images):
         "kilometrage": kilometrage,
         "etat": etat,  # 0: available, 1: rented
         "prix_location": prix_location,
-        "total": 0 , # Initialize the total field to 0
+        "total": 0.0,  # Initialize the total field to 0.0 (float type)
         "tenant": None,  # No tenant when the car is available
         "images": images  # List of image URLs
     }
     cars_collection.insert_one(car)
+
 
 
 
@@ -57,56 +58,42 @@ def get_all_cars():
     for car in cars:
         car['_id'] = str(car['_id'])  # Convert ObjectId to string for JSON serialization
     return cars
-
-
-def rent_car(car_id, tenant, start_date, end_date):
-    # Convert string dates to datetime objects for comparison
-    start_date = datetime.strptime(start_date, '%Y-%m-%d')
-    end_date = datetime.strptime(end_date, '%Y-%m-%d')
-
-    # Find the car by its 'num_imma'
-    car = cars_collection.find_one({"num_imma": car_id})
     
-    if car:
-        # Check if the car is already rented for overlapping periods
-        existing_rentals = cars_collection.find({"num_imma": car_id, "etat": 1})  # Rented cars
-        for rental in existing_rentals:
-            # Convert the start and end dates of the existing rental
-            existing_start_date = datetime.strptime(rental['start_date'], '%Y-%m-%d')
-            existing_end_date = datetime.strptime(rental['end_date'], '%Y-%m-%d')
+def rent_car(car_id, tenant, start_date, end_date):
+    try:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date, '%Y-%m-%d')
 
-            # Check if there is any overlap with existing rental
-            if (start_date < existing_end_date and end_date > existing_start_date):
-                return False  # Overlap found, cannot rent the car
+        # Find car by ID
+        car = cars_collection.find_one({"num_imma": car_id})
 
-        # If the car is planned for future rental (before today)
-        if start_date > datetime.now():
-            # The car is still available (but planned for future rental), keep etat 0
+        if car:
+            # Check for overlapping rental periods
+            if car.get("etat", 0) == 1:  # If car is already rented
+                existing_start_date = datetime.strptime(car['start_date'], '%Y-%m-%d')
+                existing_end_date = datetime.strptime(car['end_date'], '%Y-%m-%d')
+                if start_date < existing_end_date and end_date > existing_start_date:
+                    return False  # Overlap exists
+
+            # Update car as rented
             car['tenant'] = tenant
             car['start_date'] = start_date.strftime('%Y-%m-%d')
             car['end_date'] = end_date.strftime('%Y-%m-%d')
-            car['etat'] = 0  # Keep the car available (etat = 0)
-        else:
-            # Rent the car if it's available
-            car['tenant'] = tenant
-            car['start_date'] = start_date.strftime('%Y-%m-%d')
-            car['end_date'] = end_date.strftime('%Y-%m-%d')
-            car['etat'] = 1  # Mark the car as rented
-        
-        # Update the car document in the cars collection
-        cars_collection.update_one({"num_imma": car_id}, {"$set": car})
+            car['etat'] = 1  # Mark as rented
+            cars_collection.update_one({"num_imma": car_id}, {"$set": car})
 
-        # Add the marque of the rented car to the tenant's record
-        tenant_collection.update_one(
-            {"_id": tenant["_id"]},  # Find the tenant by their unique ID
-            {"$push": {"rented_cars": {"marque": car['marque']}}}  # Add the marque to rented_cars
-        )
-        return True
-    return False
+            # Update tenant record
+            tenant_collection.update_one(
+                {"_id": tenant["_id"]},
+                {"$push": {"rented_cars": {"marque": car['marque']}}}
+            )
+            return True
 
+        return False  # Car not found
 
-
-
+    except Exception as e:
+        print(f"Error in rent_car: {e}")
+        return False
 
 def get_non_rented_cars():
     non_rented_cars = cars_collection.find({"etat": 0})  # Cars that are available

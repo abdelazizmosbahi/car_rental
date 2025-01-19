@@ -72,9 +72,9 @@
               <nav class="site-navigation text-right ml-auto d-none d-lg-block" role="navigation">
                 <ul class="site-menu main-menu js-clone-nav ml-auto">
                     <li><a href="{{ url_for('admindash') }}" class="nav-link">Dashboard</a></li>
-                    <li  class="active"></li><a href="{{ url_for('managecar') }}" class="nav-link">Cars</a></li>
+                    <li   class="active"><a href="{{ url_for('managecar') }}" class="nav-link">Cars</a></li>
                     <li><a href="{{ url_for('users') }}" class="nav-link">Users</a></li>
-                    <li><a href="{{ url_for('testimonials') }}" class="nav-link">Testimonials</a></li>
+                    <li><a href="{{ url_for('admintestimonials') }}" class="nav-link">Testimonials</a></li>
                     <li><a href="{{ url_for('admincontact') }}" class="nav-link">Contacts</a></li>
 
                     {% if tenant['tenant_id'] %}
@@ -83,7 +83,7 @@
                           <p>Not logged in.</p>
                         {% endif %}</a></li>
                 </ul>
-            </nav>            
+            </nav>        
             </div>
           </div>
         </div>
@@ -97,6 +97,11 @@
             <div class="row">
                 <div class="col-lg-7">
                     <h2 class="section-heading"><strong>All Cars Listings</strong></h2>
+                    <!-- Success Message -->
+<div id="successMessage" class="alert alert-success d-none" role="alert">
+    Car added successfully! <span id="countdown">4</span> seconds to refresh.
+</div>
+
                     <p class="mb-5"><!-- Button with an Add Icon -->
                         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCarModal">
                             <i>Add new car</i> 
@@ -350,64 +355,66 @@ if (tenant_id) {
       };
   });
   
-  function openReturnCarModal(num_imma, start_date, end_date, prix_location) {
-      const startDate = new Date(start_date);
-      const endDate = new Date(end_date);
-  
-      // Calculate the number of days between start_date and end_date
-      const timeDifference = endDate - startDate;
-      const daysRented = timeDifference / (1000 * 3600 * 24);  // Convert time difference to days
-  
-      // Calculate rental fees
-      const rentalFees = daysRented * prix_location;
-  
-      // Display the fees and car info in the modal
-      $('#returnCarInfo').text(`Rental Fees: ${rentalFees}$ (for ${daysRented} days)`);
-      window.currentCarNumImma = num_imma;  // Store car number in a global variable
-      $('#returnCarModal').modal('show');
-  }
-  
-  // Close the return car modal
-  function closeReturnCarModal() {
-      $('#returnCarModal').modal('hide');
-      // Reset the alert messages
-      $('#successMessage').addClass('d-none');
-      $('#errorMessage').addClass('d-none');
-  }
-  
-  // Handle the return car confirmation
-  $('#confirmReturnBtn').on('click', function() {
-      // Make the PUT request to return the car
-      fetch(`/return_car/${window.currentCarNumImma}`, {
-          method: 'PUT',
-          headers: {
-              'Content-Type': 'application/json',
-          }
-      })
-      .then(response => response.json())
-      .then(data => {
-          if (data.message) {
-              // Show success message
-              $('#successMessage').removeClass('d-none');
-              setTimeout(() => {
-                  closeReturnCarModal();  // Close modal after success
-                  location.reload();  // Reload the page to update the car list
-              }, 1000);
-          } else {
-              // Show error message
-              $('#errorMessage').removeClass('d-none');
-          }
-      })
-      .catch(error => {
-          console.error("Error:", error);
-          $('#errorMessage').removeClass('d-none');
-      });
-  });
-  
+// Function to open the modal with car info for return
+function openReturnCarModal(num_imma, start_date, end_date, prix_location) {
+    const startDate = new Date(start_date);
+    const endDate = new Date(end_date);
+
+    // Calculate the number of days between start_date and end_date
+    const timeDifference = endDate - startDate;
+    const daysRented = timeDifference / (1000 * 3600 * 24);  // Convert time difference to days
+
+    // Calculate rental fees
+    const rentalFees = daysRented * prix_location;
+
+    // Display the fees and car info in the modal
+    $('#returnCarInfo').text(`Rental Fees: ${rentalFees}$ (for ${daysRented} days)`);
+    window.currentCarNumImma = num_imma;  // Store car number in a global variable
+    $('#returnCarModal').modal('show');
+}
+
+// Close the return car modal
+function closeReturnCarModal() {
+    $('#returnCarModal').modal('hide');
+    // Reset the alert messages
+    $('#successMessage').addClass('d-none');
+    $('#errorMessage').addClass('d-none');
+}
+
+// Handle the return car confirmation
+$('#confirmReturnBtn').on('click', function() {
+    // Make the PUT request to return the car
+    fetch(`/return_car/${window.currentCarNumImma}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            // Show success message
+            $('#successMessage').removeClass('d-none').text(data.message);
+            setTimeout(() => {
+                closeReturnCarModal();  // Close modal after success
+                location.reload();  // Reload the page to update the car list
+            }, 1000);
+        } else {
+            // Show error message
+            $('#errorMessage').removeClass('d-none').text("Failed to return the car.");
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        $('#errorMessage').removeClass('d-none').text("Error processing request.");
+    });
+});
+
   
        // View car details
   window.viewCar = function (num_imma) {
       $.get(`/get_car/${num_imma}`, function (car) {
+          $('#view-num_imma').text(car.num_imma);
           $('#view-marque').text(car.marque);
           $('#view-modele').text(car.modele);
           $('#view-kilometrage').text(car.kilometrage);
@@ -518,72 +525,132 @@ if (tenant_id) {
       </script>
 
 
-
-
-
-        <!-- Modal for Adding New Car -->
-        <div class="modal fade" id="addCarModal" tabindex="-1" aria-labelledby="addCarModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addCarModalLabel">Add a New Car</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <form action="/add_car" method="POST" enctype="multipart/form-data">
-                        <div class="modal-body">
-                            <div class="form-group">
-                                <label for="num_imma">num_imma</label>
-                                <input type="text" class="form-control" id="num_imma" name="num_imma" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="marque"> marque:</label>
-                                <input type="text" class="form-control" id="marque" name="marque" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="modele">Car Model:</label>
-                                <input type="text" class="form-control" id="modele" name="modele" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="kilometrage">Kilometrage:</label>
-                                <input type="number" class="form-control" id="kilometrage" name="kilometrage" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="prix_location">Price per Day:</label>
-                                <input type="number" class="form-control" id="prix_location" name="prix_location" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="images">Car Images:</label>
-                                <input type="file" class="form-control" id="images" name="images" multiple>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="submit" class="btn btn-primary">Add Car</button>
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        </div>
-                    </form>
-                </div>
+<!-- Modal for Adding New Car -->
+<div class="modal fade" id="addCarModal" tabindex="-1" aria-labelledby="addCarModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCarModalLabel">Add a New Car</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-        </div>
+            <form id="addCarForm" method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <!-- Form fields for car details here -->
+                    <div class="form-group">
+                        <label for="num_imma">num_imma</label>
+                        <input type="text" class="form-control" id="num_imma" name="num_imma" required>
+                    </div>
 
-        <!-- Success Message -->
-        {% if success_message %}
-            <script>
-                alert("{{ success_message }}");
-            </script>
-        {% endif %}
-         <!-- Success and error alert messages -->
-         <div id="successMessage" class="alert alert-success d-none" role="alert">
-            Car returned successfully!
+                    <div class="form-group">
+                        <label for="marque"> marque:</label>
+                        <input type="text" class="form-control" id="marque" name="marque" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modele">Car Model:</label>
+                        <input type="text" class="form-control" id="modele" name="modele" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="kilometrage">Kilometrage:</label>
+                        <input type="number" class="form-control" id="kilometrage" name="kilometrage" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="prix_location">Price per Day:</label>
+                        <input type="number" class="form-control" id="prix_location" name="prix_location" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="images">Car Images:</label>
+                        <input type="file" class="form-control" id="images" name="images" multiple>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Add Car</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </form>
         </div>
-        <div id="errorMessage" class="alert alert-danger d-none" role="alert">
-            Something went wrong. Please try again.
-        </div>
-        
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Handle form submission via AJAX
+    $('#addCarForm').on('submit', function(event) {
+        event.preventDefault();  // Prevent the form from submitting normally
+
+        var formData = new FormData(this);  // Get the form data, including files
+
+        $.ajax({
+            url: '/add_car',  // Flask route to handle car addition
+            method: 'POST',
+            data: formData,
+            contentType: false,  // Important for file uploads
+            processData: false,  // Prevent jQuery from processing the data
+            success: function(response) {
+                // Set the session flag to true (it will be cleared on the next page load)
+                localStorage.setItem("car_added", "true");
+                localStorage.setItem("new_car", JSON.stringify(response.car));
+
+                // Reload the page
+                location.reload();
+            },
+            error: function(xhr, status, error) {
+                console.log("Error adding car:", error);  // Log any errors
+                alert('Error adding car: ' + error);
+            }
+        });
+    });
+
+    // Show success message if car was added successfully (after reload)
+    if (localStorage.getItem("car_added") === "true") {
+        $('#successMessage').removeClass('d-none');  // Show success message
+        startCountdown();  // Start the countdown and refresh after it finishes
+
+        // Append the new car to the list
+        var newCar = JSON.parse(localStorage.getItem("new_car"));
+        addCarToList(newCar);
+
+        // Clear the local storage flag after displaying the message
+        localStorage.removeItem("car_added");
+        localStorage.removeItem("new_car");
+    }
+
+    // Countdown logic
+    function startCountdown() {
+        var countdown = 4;
+        var countdownElement = $('#countdown');
+
+        var interval = setInterval(function() {
+            countdown--;
+            countdownElement.text(countdown);
+            if (countdown <= 0) {
+                clearInterval(interval);
+                location.reload();  // Refresh the page after countdown reaches 0
+            }
+        }, 1000);  // Update every second
+    }
+
+    // Function to append the new car to the car list
+    function addCarToList(car) {
+        var carHtml = `
+            <div class="car-item" data-num_imma="${car.num_imma}">
+                <h5>${car.marque} ${car.modele}</h5>
+                <p>Kilometrage: ${car.kilometrage} km</p>
+                <p>Price: ${car.prix_location} per day</p>
+                <!-- Add other car details and images if necessary -->
+            </div>
+        `;
+        $('#carList').append(carHtml);  // Append to the car list container
+    }
+});
+</script>
+
+
+
     </div>
 
   <!-- Delete Confirmation Modal -->
@@ -702,6 +769,7 @@ if (tenant_id) {
                 <button type="button" class="btn btn-primary" id="confirmReturnBtn">Return Car</button>
             </div>
         </div>
+        
     </div>
 </div>
 

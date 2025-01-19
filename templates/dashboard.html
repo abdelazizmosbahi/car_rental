@@ -59,18 +59,18 @@
           <div class="row align-items-center position-relative">
             <div class="col-3">
               <div class="site-logo">
-                <a href="#"><strong>ExoticDrive</strong></a>
+                <a href="{{ url_for('dashboard') }}"><strong>CarRental</strong></a>
               </div>
             </div>
             <div class="col-9  text-right">
               <span class="d-inline-block d-lg-none"><a href="#" class=" site-menu-toggle js-menu-toggle py-5 "><span class="icon-menu h3 text-black"></span></a></span>
 
               <nav class="site-navigation text-right ml-auto d-none d-lg-block" role="navigation">
-                <ul class="site-menu main-menu js-clone-nav ml-auto">
+                 <ul class="site-menu main-menu js-clone-nav ml-auto">
                     <li class="active"><a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a></li>
                     <li><a href="{{ url_for('testimonials') }}" class="nav-link">Testimonials</a></li>
                     {% if tenant['tenant_id'] %}
-                    <li><a href="{{ url_for('login') }}" class="nav-link">Logout, {{ tenant['username'] }}! <!-- Check if tenant is logged in -->
+                    <li><a href="{{ url_for('index') }}" class="nav-link">Logout, {{ tenant['username'] }}! <!-- Check if tenant is logged in -->
                         {% else %}
                           <p>Not logged in.</p>
                         {% endif %}</a></li>
@@ -177,11 +177,13 @@
 </div>
 
 <script>
-// Open the rent car modal
+  // Open the rent car modal
 function openRentCarModal(num_imma) {
     window.currentCarNumImma = num_imma;
-    rentModal = new bootstrap.Modal(document.getElementById('rentCarModal'));
+    const rentModal = new bootstrap.Modal(document.getElementById('rentCarModal'));
     rentModal.show();
+
+    // Reset form fields and messages
     document.getElementById("start_date").value = '';
     document.getElementById("end_date").value = '';
     document.getElementById("confirmationMessage").classList.add('d-none');
@@ -200,9 +202,8 @@ function checkDates() {
     const end_date = document.getElementById("end_date").value;
 
     if (start_date) {
-        // Set the minimum end date to be one day after the start date
+        // Allow same-day rentals by setting min end date to the start date
         const startDate = new Date(start_date);
-        startDate.setDate(startDate.getDate() + 1); // Add one day to the start date
         const minEndDate = startDate.toISOString().split("T")[0];
         document.getElementById("end_date").setAttribute("min", minEndDate);
     }
@@ -211,10 +212,10 @@ function checkDates() {
         const startDate = new Date(start_date);
         const endDate = new Date(end_date);
 
-        if (endDate > startDate) {
-            const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-            const dayText = days === 1 ? "day" : "days"; // Handle singular/plural form
-            
+        if (endDate >= startDate) {
+            const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1; // Include today
+            const dayText = days === 1 ? "day" : "days";
+
             document.getElementById("confirmationDays").textContent = `${days} ${dayText}`;
             document.getElementById("confirmationMessage").classList.remove('d-none');
             document.getElementById("rentConfirmButton").disabled = false;
@@ -225,47 +226,27 @@ function checkDates() {
     }
 }
 
+// Handle rent car confirmation
+document.getElementById("rentConfirmButton").addEventListener("click", rentCar);
+function showAlert(type, message, autoRefresh = false) {
+    const alertPlaceholder = document.getElementById("alertPlaceholder");
 
-    // Handle rent car confirmation
-    document.getElementById("rentConfirmButton").addEventListener("click", rentCar);
-
-    function rentCar() {
-        const start_date = document.getElementById("start_date").value;
-        const end_date = document.getElementById("end_date").value;
-        const tenant_id = localStorage.getItem('tenant_id'); // Get tenant ID from local storage
-
-        const data = {
-            _id: tenant_id,  // Tenant ID
-            username: "{{ tenant['username'] }}", // Tenant username
-            start_date: start_date,
-            end_date: end_date
-        };
-
-        fetch(`/rent_car/${window.currentCarNumImma}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.message) {
-                    showAlert("success", data.message);
-                    rentModal.hide();
-                    setTimeout(() => location.reload(), 1000); // Refresh the page after 1 second
-                } else {
-                    showAlert("danger", data.error);
-                }
-            })
-            .catch(error => {
-                console.error("Error:", error);
-                showAlert("danger", "Something went wrong. Please try again.");
-            });
-    }
-
-    function showAlert(type, message) {
-        const alertPlaceholder = document.getElementById("alertPlaceholder");
+    if (autoRefresh) {
+        let countdown = 2; // Countdown time in seconds
+        const interval = setInterval(() => {
+            alertPlaceholder.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message} Page will reload in ${countdown} second${countdown > 1 ? 's' : ''}.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            countdown--;
+            if (countdown < 0) {
+                clearInterval(interval);
+                location.reload(); // Reload the page
+            }
+        }, 1000); // Update the countdown every second
+    } else {
         alertPlaceholder.innerHTML = `
             <div class="alert alert-${type} alert-dismissible fade show" role="alert">
                 ${message}
@@ -273,6 +254,56 @@ function checkDates() {
             </div>
         `;
     }
+}
+
+// Updated rentCar function to include auto-refresh
+function rentCar() {
+    const start_date = document.getElementById("start_date").value;
+    const end_date = document.getElementById("end_date").value;
+    const tenant_id = localStorage.getItem('tenant_id'); // Get tenant ID from local storage
+    const tenant_username = localStorage.getItem('tenant_username'); // Get tenant username from local storage
+
+    const data = {
+        _id: tenant_id,
+        username: tenant_username,
+        start_date: start_date,
+        end_date: end_date
+    };
+
+    fetch(`/rent_car/${window.currentCarNumImma}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            const rentModal = bootstrap.Modal.getInstance(document.getElementById('rentCarModal'));
+            rentModal.hide();
+            showAlert("success", data.message, true); // Enable auto-refresh on success
+        } else {
+            showAlert("danger", data.error);
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        showAlert("danger", error.message || "Unable to connect to the server. Please try again.");
+    });
+}
+
+
+// Dynamically update car status in UI
+function updateCarStatus(num_imma) {
+    const carElement = document.getElementById(`car-${num_imma}`);
+    if (carElement) {
+        carElement.textContent = "Rented"; // Update status
+        carElement.classList.add('rented'); // Optional: Add class for styling
+    }
+}
+
+    
 </script>
                     </div>
                 </div>
@@ -503,9 +534,11 @@ function openReturnCarModal(num_imma, start_date, end_date, prix_location) {
     // Show the return car modal
     $('#returnCarModal').modal('show');
 }
-
 // Process the return car and send the data to the server
 function processReturnCar() {
+    // Reset the alerts container before appending a new message
+    document.getElementById('alertsContainer').innerHTML = '';
+
     fetch(`/return_car/${window.currentCarNumImma}`, {
         method: 'PUT',
         headers: {
@@ -523,21 +556,42 @@ function processReturnCar() {
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             `;
-            // Append the success message to the page (e.g., at the top or in a specific container)
+            // Append the success message to the alerts container
             document.getElementById('alertsContainer').innerHTML = successAlert;
 
             // Close the return car modal and reload after a short delay
             setTimeout(() => {
                 closeReturnCarModal();
                 location.reload();  // Reload the page to show the updated car list and totals
-            }, 2000); // Adjust delay as needed
+            }, 4000); // Adjust delay as needed
         } else {
             // Show error message if the return failed
+            const errorAlert = `
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>Error!</strong> There was an issue returning the car.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            // Append the error message to the alerts container
+            document.getElementById('alertsContainer').innerHTML = errorAlert;
+
+            // Show error message on the modal as well
             $('#errorMessage').removeClass('d-none');
         }
     })
     .catch(error => {
         console.error("Error:", error);
+
+        // Show error message if there was an issue with the network request
+        const errorAlert = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <strong>Error!</strong> There was an issue processing the return.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+        document.getElementById('alertsContainer').innerHTML = errorAlert;
+
+        // Show error message in the modal
         $('#errorMessage').removeClass('d-none');
     });
 
