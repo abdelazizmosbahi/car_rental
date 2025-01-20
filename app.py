@@ -248,14 +248,17 @@ def enter():
     if user:
         # If the user exists, store the user's ID and role in the session
         session['tenant_id'] = str(user['_id'])  # Store user ID in session
-        session['username'] = user['username']  # Optional: store username
+        session['username'] = user['username']  # Store username in session
         session['role'] = user.get('role', 'tenant')  # Default role is 'tenant'
 
-        # Redirect based on role
-        if session['role'] == 'admin':
-            return jsonify({'success': True, 'redirect_url': url_for('admindash')}), 200
-        else:
-            return jsonify({'success': True, 'redirect_url': url_for('dashboard')}), 200
+        # Return the success response along with tenant info for front-end usage
+        return jsonify({
+            'success': True,
+            'tenant_id': session['tenant_id'],  # Include tenant ID
+            'tenant_username': session['username'],  # Include tenant username
+            'role': session['role'],  # Include role
+            'redirect_url': url_for('admindash') if session['role'] == 'admin' else url_for('dashboard')
+        }), 200
     else:
         # If credentials are incorrect
         return jsonify({'success': False, 'message': 'Invalid username or password!'}), 401
@@ -493,6 +496,10 @@ def rent_car_route(car_id):
             "_id": data['_id'],
             "username": data['username']
         }
+        
+        # Debugging the tenant information received
+        print(f"Received tenant info: {tenant}")
+
         start_date = data.get('start_date', str(datetime.now().date()))
         end_date = data['end_date']
 
@@ -510,6 +517,7 @@ def rent_car_route(car_id):
         # Handle unexpected errors
         print(f"Error: {e}")
         return jsonify({"error": "Something went wrong. Please try again."}), 500
+
 
 @app.route('/mycars', methods=['GET'])
 def my_cars():
@@ -638,7 +646,6 @@ def return_car_route(car_num_imma):
             return jsonify({"error": "Failed to update car information."}), 500
     return jsonify({"error": "Car not found or not rented."}), 404
 
-
 @app.route('/return_my_car/<car_num_imma>', methods=['PUT'])
 def return_my_car(car_num_imma):
     current_date = datetime.now()
@@ -657,10 +664,10 @@ def return_my_car(car_num_imma):
             rental_fees += late_days * car['prix_location'] * 2  # Extra charge for late return
             extra_fee = late_days * car['prix_location'] * 2
 
-        # Convert total to float to ensure correct addition
-        total_amount = float(car['total']) + rental_fees  # Ensure total is a float
+        # Convert total to float for accurate calculation (if you still need total, otherwise you can skip this)
+        # total_amount = float(car['total']) + rental_fees  # If needed, update the total
 
-        # Update the car in the database with the new total cost and other necessary fields
+        # Update the car in the database with the new rental fee and other necessary fields
         update_result = cars_collection.update_one(
             {"num_imma": car_num_imma},
             {"$set": {
@@ -668,19 +675,20 @@ def return_my_car(car_num_imma):
                 "tenant": {},  # Clear tenant info
                 "start_date": None,  # Reset start date
                 "end_date": None,  # Reset end date
-                "total": total_amount  # Update the total cost in the database
+                # "total": total_amount  # If you want to update total, you can include this line
             }}
         )
 
         # Check if the update was successful
         if update_result.modified_count > 0:
             return jsonify({
-                "message": f"Car returned successfully! Total rental fees: ${rental_fees:.2f}. Extra fee: ${extra_fee:.2f} for {late_days} late days. Updated total: ${total_amount:.2f}."
+                "message": f"Car returned successfully! Rental fees: ${rental_fees:.2f}. Extra fee: ${extra_fee:.2f} for {late_days} late days."
             })
         else:
             return jsonify({"error": "Failed to update car information."}), 500
 
     return jsonify({"error": "Car not found or not rented."}), 404
+
 
 
 # list of all tenants

@@ -383,12 +383,29 @@ function closeReturnCarModal() {
 
 // Handle the return car confirmation
 $('#confirmReturnBtn').on('click', function() {
+    // Retrieve tenant info from localStorage
+    const tenant_id = localStorage.getItem('tenant_id');  // Get tenant ID from local storage
+    const tenant_username = localStorage.getItem('tenant_username');  // Get tenant username from local storage
+
+    if (!tenant_id || !tenant_username) {
+        alert("Tenant information is missing. Please log in again.");
+        return; // Prevent the API call if user info is missing
+    }
+
+    // Data to send in the request
+    const returnData = {
+        tenant_id: tenant_id,  // Add tenant ID
+        tenant_username: tenant_username,  // Add tenant username
+        car_number: window.currentCarNumImma  // Car number from the global variable
+    };
+
     // Make the PUT request to return the car
     fetch(`/return_car/${window.currentCarNumImma}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify(returnData)
     })
     .then(response => response.json())
     .then(data => {
@@ -410,7 +427,6 @@ $('#confirmReturnBtn').on('click', function() {
     });
 });
 
-  
        // View car details
   window.viewCar = function (num_imma) {
       $.get(`/get_car/${num_imma}`, function (car) {

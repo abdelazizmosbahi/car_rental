@@ -97,52 +97,66 @@
                 </div>
             </div>
             <div class="row">
-              {% for car in cars %}
-              <div class="col-md-6 col-lg-4 mb-4">
-                  <div class="listing d-block align-items-stretch">
-                      <div class="listing-img h-100 mr-4" style="position: relative;">
-                          <img 
-                              src="data:image/jpeg;base64,{{ car['images'][0] }}" 
-                              alt="Car Image" 
-                              class="img-fluid car-image" 
-                              id="car-image-{{ loop.index }}" 
-                              data-images="{{ car['images'] | join(',') }}" 
-                              data-current-index="0" 
-                              style="width: 300px; height: 200px; object-fit: cover; position: relative; top: 0%; opacity: 1;">
-                          <button 
-                              class="btn btn-secondary btn-sm" 
-                              style="position: absolute; top: 50%; left: 5px; transform: translateY(-50%); z-index: 10; background-color: rgba(128, 128, 128, 0.6); border: none;"
-                              onclick="navigateCarImage('{{ loop.index }}', -1)">
-                              &#8249;
-                          </button>
-                          <button 
-                              class="btn btn-secondary btn-sm" 
-                              style="position: absolute; top: 50%; right: 5px; transform: translateY(-50%); z-index: 10; background-color: rgba(128, 128, 128, 0.6); border: none;"
-                              onclick="navigateCarImage('{{ loop.index }}', 1)">
-                              &#8250;
-                          </button>
-                      </div>
-                      <div class="listing-contents h-100">
-                          <h3>{{ car['marque'] }} <br>{{ car['modele'] }}</h3>
-                          <div class="rent-price">
-                              <strong>${{ car['prix_location'] }}</strong><span class="mx-1">/</span>day
-                          </div>
-                          <div class="d-block d-md-flex mb-3 border-bottom pb-3">
-                              <div class="listing-feature pr-4">
-                                  <span class="caption">Kilometrage:</span>
-                                  <span class="number">{{ car['kilometrage'] }} km</span>
-                              </div>
-                          </div>
-                          <div>
-                              <p class="{{ car['status_color'] }}">
-                                  <strong>{{ car['status_message'] }}</strong>
-                              </p>
-                          </div>
-                      </div>
-                  </div>
-              </div>
-              {% endfor %}
-          </div>
+                {% for car in cars %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="listing d-block align-items-stretch">
+                        <div class="listing-img h-100 mr-4" style="position: relative;">
+                            <img 
+                                src="data:image/jpeg;base64,{{ car['images'][0] }}" 
+                                alt="Car Image" 
+                                class="img-fluid car-image" 
+                                id="car-image-{{ loop.index }}" 
+                                data-images="{{ car['images'] | join(',') }}" 
+                                data-current-index="0" 
+                                style="width: 300px; height: 200px; object-fit: cover; position: relative; top: 0%; opacity: 1;">
+                            <button 
+                                class="btn btn-secondary btn-sm" 
+                                style="position: absolute; top: 50%; left: 5px; transform: translateY(-50%); z-index: 10; background-color: rgba(128, 128, 128, 0.6); border: none;"
+                                onclick="navigateCarImage('{{ loop.index }}', -1)">
+                                &#8249;
+                            </button>
+                            <button 
+                                class="btn btn-secondary btn-sm" 
+                                style="position: absolute; top: 50%; right: 5px; transform: translateY(-50%); z-index: 10; background-color: rgba(128, 128, 128, 0.6); border: none;"
+                                onclick="navigateCarImage('{{ loop.index }}', 1)">
+                                &#8250;
+                            </button>
+                        </div>
+                        <div class="listing-contents h-100">
+                            <h3>{{ car['marque'] }} <br>{{ car['modele'] }}</h3>
+                            <!-- Show Rent Price and Kilometrage only if the car is not rented -->
+                            {% if not car['tenant'] %}
+                                <div class="rent-price">
+                                    <strong>${{ car['prix_location'] }}</strong><span class="mx-1">/</span>day
+                                </div>
+                                <div class="d-block d-md-flex mb-3 border-bottom pb-3">
+                                    <div class="listing-feature pr-4">
+                                        <span class="caption">Kilometrage:</span>
+                                        <span class="number">{{ car['kilometrage'] }} km</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            
+                            <div>
+                                <p class="{{ car['status_color'] }}">
+                                    <strong>{{ car['status_message'] }}</strong>
+                                </p>
+                            </div>
+            
+                            <!-- Show Tenant Info only for Rented Cars -->
+                            {% if car['tenant'] %}
+                            <br><hr>
+
+                                <div class="rented-info mt-3">
+                                    <strong>Rented By:</strong> {{ car['tenant']['username'] }}<br>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
           
         </div>
         <hr>
@@ -157,7 +171,6 @@
                     <thead>
                         <tr>
                             <th>Username</th>
-                            <th>Role</th>
                             <th>Rented Cars</th> <!-- Add a column for rented cars -->
                         </tr>
                     </thead>
@@ -166,6 +179,25 @@
                     </tbody>
                 </table>
             </div>
+           <!-- Modal -->
+<div class="modal fade" id="rentedCarsModal" tabindex="-1" aria-labelledby="rentedCarsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rentedCarsModalLabel">Rented Cars</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="carListBody">
+                <!-- List of rented cars will be dynamically inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+  
           
         </div>
     </div>
@@ -325,21 +357,21 @@ if (tenant_id) {
 </script>
   
 <script>
-    // Fetch tenants and display them in the table
     $(document).ready(function() {
-        $.get('/get_all_tenants', function(tenants) {
+        // Fetch tenants and cars
+        $.get('/get_all_tenants_and_cars', function(tenants) {
             if (tenants.length > 0) {
                 tenants.forEach(function(tenant) {
-                    // Check if the tenant has rented cars
-                    let rentedCarsMessage = tenant.rented_cars && tenant.rented_cars.length > 0
-                        ? 'Has rented cars'
+                    // Build the row for each tenant with the count of rented cars
+                    let rentedCarsCount = tenant.rented_cars_count;
+                    let rentedCarsMessage = rentedCarsCount > 0
+                        ? `<span class="clickable" style="color: blue; cursor: pointer;" data-tenant="${tenant.username}" data-cars="${tenant.rented_cars.join(', ')}">${rentedCarsCount}</span>`
                         : 'No rented cars';
 
-                    // Build the row for each tenant
+                    // Build the tenant row
                     let tenantRow = `
                         <tr>
                             <td>${tenant.username}</td>
-                            <td>${tenant.role}</td>
                             <td>${rentedCarsMessage}</td>
                         </tr>
                     `;
@@ -349,8 +381,31 @@ if (tenant_id) {
                 $('#tenants-list').append('<tr><td colspan="3" class="text-center">No tenants found</td></tr>');
             }
         });
+
+        // Handle click event to show car names in a modal
+        $(document).on('click', '.clickable', function() {
+            var tenantUsername = $(this).data('tenant');
+            var carNames = $(this).data('cars').split(', ');
+
+            // Create a list of car names
+            var carListHtml = `<ul>`;
+            carNames.forEach(function(car) {
+                carListHtml += `<li>${car}</li>`;
+            });
+            carListHtml += `</ul>`;
+
+            // Insert the list of rented cars into the modal body
+            $('#carListBody').html(`
+                <h5>Cars rented by ${tenantUsername}:</h5>
+                ${carListHtml}
+            `);
+
+            // Show the modal
+            $('#rentedCarsModal').modal('show');
+        });
     });
 </script>
+
 
 
 

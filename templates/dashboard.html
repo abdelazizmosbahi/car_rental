@@ -177,134 +177,148 @@
 </div>
 
 <script>
-  // Open the rent car modal
-function openRentCarModal(num_imma) {
-    window.currentCarNumImma = num_imma;
-    const rentModal = new bootstrap.Modal(document.getElementById('rentCarModal'));
-    rentModal.show();
+    // Open the rent car modal
+    function openRentCarModal(num_imma) {
+        window.currentCarNumImma = num_imma;
+        const rentModal = new bootstrap.Modal(document.getElementById('rentCarModal'));
+        rentModal.show();
 
-    // Reset form fields and messages
-    document.getElementById("start_date").value = '';
-    document.getElementById("end_date").value = '';
-    document.getElementById("confirmationMessage").classList.add('d-none');
-    document.getElementById("rentConfirmButton").disabled = true;
+        // Reset form fields and messages
+        document.getElementById("start_date").value = '';
+        document.getElementById("end_date").value = '';
+        document.getElementById("confirmationMessage").classList.add('d-none');
+        document.getElementById("rentConfirmButton").disabled = true;
 
-    // Set the minimum date for the start date to today
-    document.getElementById("start_date").setAttribute("min", new Date().toISOString().split("T")[0]);
-}
-
-// Check if dates are valid and display confirmation
-document.getElementById("start_date").addEventListener("change", checkDates);
-document.getElementById("end_date").addEventListener("change", checkDates);
-
-function checkDates() {
-    const start_date = document.getElementById("start_date").value;
-    const end_date = document.getElementById("end_date").value;
-
-    if (start_date) {
-        // Allow same-day rentals by setting min end date to the start date
-        const startDate = new Date(start_date);
-        const minEndDate = startDate.toISOString().split("T")[0];
-        document.getElementById("end_date").setAttribute("min", minEndDate);
+        // Set the minimum date for the start date to today
+        document.getElementById("start_date").setAttribute("min", new Date().toISOString().split("T")[0]);
     }
 
-    if (start_date && end_date) {
-        const startDate = new Date(start_date);
-        const endDate = new Date(end_date);
+    // Check if dates are valid and display confirmation
+    document.getElementById("start_date").addEventListener("change", checkDates);
+    document.getElementById("end_date").addEventListener("change", checkDates);
 
-        if (endDate >= startDate) {
-            const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1; // Include today
-            const dayText = days === 1 ? "day" : "days";
+    function checkDates() {
+        const start_date = document.getElementById("start_date").value;
+        const end_date = document.getElementById("end_date").value;
 
-            document.getElementById("confirmationDays").textContent = `${days} ${dayText}`;
-            document.getElementById("confirmationMessage").classList.remove('d-none');
-            document.getElementById("rentConfirmButton").disabled = false;
-        } else {
-            document.getElementById("confirmationMessage").classList.add('d-none');
-            document.getElementById("rentConfirmButton").disabled = true;
+        if (start_date) {
+            // Allow same-day rentals by setting min end date to the start date
+            const startDate = new Date(start_date);
+            const minEndDate = startDate.toISOString().split("T")[0];
+            document.getElementById("end_date").setAttribute("min", minEndDate);
+        }
+
+        if (start_date && end_date) {
+            const startDate = new Date(start_date);
+            const endDate = new Date(end_date);
+
+            if (endDate >= startDate) {
+                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1; // Include today
+                const dayText = days === 1 ? "day" : "days";
+
+                document.getElementById("confirmationDays").textContent = `${days} ${dayText}`;
+                document.getElementById("confirmationMessage").classList.remove('d-none');
+                document.getElementById("rentConfirmButton").disabled = false;
+            } else {
+                document.getElementById("confirmationMessage").classList.add('d-none');
+                document.getElementById("rentConfirmButton").disabled = true;
+            }
         }
     }
-}
 
-// Handle rent car confirmation
-document.getElementById("rentConfirmButton").addEventListener("click", rentCar);
-function showAlert(type, message, autoRefresh = false) {
-    const alertPlaceholder = document.getElementById("alertPlaceholder");
+    // Handle rent car confirmation
+    document.getElementById("rentConfirmButton").addEventListener("click", rentCar);
 
-    if (autoRefresh) {
-        let countdown = 2; // Countdown time in seconds
-        const interval = setInterval(() => {
+    function rentCar() {
+        const start_date = document.getElementById("start_date").value;
+        const end_date = document.getElementById("end_date").value;
+
+        // Get tenant information from localStorage
+        const tenant_id = localStorage.getItem('tenant_id'); // Get tenant ID from local storage
+        const tenant_username = localStorage.getItem('tenant_username'); // Get tenant username from local storage
+
+        // Debugging the tenant data before sending to the server
+        console.log('Tenant ID:', tenant_id);
+        console.log('Tenant Username:', tenant_username);
+
+        // Validate tenant information
+        if (!tenant_id || !tenant_username) {
+            alert("Error: Tenant not logged in properly.");
+            return;
+        }
+
+        const data = {
+            _id: tenant_id,
+            username: tenant_username,
+            start_date: start_date,
+            end_date: end_date
+        };
+
+        console.log('Data being sent to server:', data);  // Log the data object before sending
+
+        // Make API request to rent the car
+        fetch(`/rent_car/${window.currentCarNumImma}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                const rentModal = bootstrap.Modal.getInstance(document.getElementById('rentCarModal'));
+                rentModal.hide();
+                showAlert("success", data.message, true); // Enable auto-refresh on success
+            } else {
+                showAlert("danger", data.error);
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            showAlert("danger", error.message || "Unable to connect to the server. Please try again.");
+        });
+    }
+
+    // Show alert message
+    function showAlert(type, message, autoRefresh = false) {
+        const alertPlaceholder = document.getElementById("alertPlaceholder");
+
+        if (autoRefresh) {
+            let countdown = 2; // Countdown time in seconds
+            const interval = setInterval(() => {
+                alertPlaceholder.innerHTML = `
+                    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                        ${message} Page will reload in ${countdown} second${countdown > 1 ? 's' : ''}.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+                countdown--;
+                if (countdown < 0) {
+                    clearInterval(interval);
+                    location.reload(); // Reload the page
+                }
+            }, 1000); // Update the countdown every second
+        } else {
             alertPlaceholder.innerHTML = `
                 <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                    ${message} Page will reload in ${countdown} second${countdown > 1 ? 's' : ''}.
+                    ${message}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             `;
-            countdown--;
-            if (countdown < 0) {
-                clearInterval(interval);
-                location.reload(); // Reload the page
-            }
-        }, 1000); // Update the countdown every second
-    } else {
-        alertPlaceholder.innerHTML = `
-            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        `;
-    }
-}
-
-// Updated rentCar function to include auto-refresh
-function rentCar() {
-    const start_date = document.getElementById("start_date").value;
-    const end_date = document.getElementById("end_date").value;
-    const tenant_id = localStorage.getItem('tenant_id'); // Get tenant ID from local storage
-    const tenant_username = localStorage.getItem('tenant_username'); // Get tenant username from local storage
-
-    const data = {
-        _id: tenant_id,
-        username: tenant_username,
-        start_date: start_date,
-        end_date: end_date
-    };
-
-    fetch(`/rent_car/${window.currentCarNumImma}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.message) {
-            const rentModal = bootstrap.Modal.getInstance(document.getElementById('rentCarModal'));
-            rentModal.hide();
-            showAlert("success", data.message, true); // Enable auto-refresh on success
-        } else {
-            showAlert("danger", data.error);
         }
-    })
-    .catch(error => {
-        console.error("Error:", error);
-        showAlert("danger", error.message || "Unable to connect to the server. Please try again.");
-    });
-}
-
-
-// Dynamically update car status in UI
-function updateCarStatus(num_imma) {
-    const carElement = document.getElementById(`car-${num_imma}`);
-    if (carElement) {
-        carElement.textContent = "Rented"; // Update status
-        carElement.classList.add('rented'); // Optional: Add class for styling
     }
-}
 
-    
+    // Dynamically update car status in UI
+    function updateCarStatus(num_imma) {
+        const carElement = document.getElementById(`car-${num_imma}`);
+        if (carElement) {
+            carElement.textContent = "Rented"; // Update status
+            carElement.classList.add('rented'); // Optional: Add class for styling
+        }
+    }
 </script>
+
                     </div>
                 </div>
             </div>
@@ -539,12 +553,13 @@ function processReturnCar() {
     // Reset the alerts container before appending a new message
     document.getElementById('alertsContainer').innerHTML = '';
 
-    fetch(`/return_car/${window.currentCarNumImma}`, {
+    fetch(`/return_my_car/${window.currentCarNumImma}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ totalAmount: window.currentTotalAmount })  // Send the total amount to the server
+        // No need to send the totalAmount, as the server is not updating the total
+        body: JSON.stringify({})  // Send empty object, no need to pass total amount
     })
     .then(response => response.json())
     .then(data => {
@@ -559,24 +574,27 @@ function processReturnCar() {
             // Append the success message to the alerts container
             document.getElementById('alertsContainer').innerHTML = successAlert;
 
-            // Close the return car modal and reload after a short delay
+            // Reload the page after a short delay
             setTimeout(() => {
                 closeReturnCarModal();
                 location.reload();  // Reload the page to show the updated car list and totals
-            }, 4000); // Adjust delay as needed
+            }, 3000); // Delay for 3 seconds
         } else {
             // Show error message if the return failed
             const errorAlert = `
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <strong>Error!</strong> There was an issue returning the car.
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
+                
             `;
             // Append the error message to the alerts container
             document.getElementById('alertsContainer').innerHTML = errorAlert;
 
-            // Show error message on the modal as well
+            // Show error message in the modal as well
             $('#errorMessage').removeClass('d-none');
+
+            // Hide the error message after 3 seconds and refresh the page
+            setTimeout(() => {
+                document.getElementById('alertsContainer').innerHTML = ''; // Remove alert message
+                location.reload();  // Reload the page to reflect car status
+            }, 3000); // Delay for 3 seconds
         }
     })
     .catch(error => {
@@ -584,15 +602,18 @@ function processReturnCar() {
 
         // Show error message if there was an issue with the network request
         const errorAlert = `
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <strong>Error!</strong> There was an issue processing the return.
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
+            
         `;
         document.getElementById('alertsContainer').innerHTML = errorAlert;
 
         // Show error message in the modal
         $('#errorMessage').removeClass('d-none');
+
+        // Hide the error message and refresh the page after 3 seconds
+        setTimeout(() => {
+            document.getElementById('alertsContainer').innerHTML = ''; // Remove alert message
+            location.reload();  // Reload the page to reflect any changes
+        }, 2000); // Delay for 3 seconds
     });
 
     // Hide the confirmation button after processing the return

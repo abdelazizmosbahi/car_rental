@@ -67,7 +67,7 @@
 
               <nav class="site-navigation text-right ml-auto d-none d-lg-block" role="navigation">
                 <ul class="site-menu main-menu js-clone-nav ml-auto">
-                    <li ><a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a></li>
+                    <li ><a href="{{ url_for('admindash') }}" class="nav-link">Dashboard</a></li>
                     <li><a href="{{ url_for('managecar') }}" class="nav-link">Cars</a></li>
                     <li class="active"><a href="{{ url_for('users') }}" class="nav-link">Users</a></li>
                     <li><a href="{{ url_for('admintestimonials') }}" class="nav-link">Testimonials</a></li>
@@ -101,7 +101,6 @@
                     <thead>
                         <tr>
                             <th>Username</th>
-                            <th>Role</th>
                             <th>Rented Cars</th> <!-- Add a column for rented cars -->
                         </tr>
                     </thead>
@@ -118,33 +117,56 @@
 
 
   
-<script>
-    // Fetch tenants and display them in the table
-    $(document).ready(function() {
-        $.get('/get_all_tenants', function(tenants) {
-            if (tenants.length > 0) {
-                tenants.forEach(function(tenant) {
-                    // Check if the tenant has rented cars
-                    let rentedCarsMessage = tenant.rented_cars && tenant.rented_cars.length > 0
-                        ? 'Has rented cars'
-                        : 'No rented cars';
-
-                    // Build the row for each tenant
-                    let tenantRow = `
-                        <tr>
-                            <td>${tenant.username}</td>
-                            <td>${tenant.role}</td>
-                            <td>${rentedCarsMessage}</td>
-                        </tr>
-                    `;
-                    $('#tenants-list').append(tenantRow);
-                });
-            } else {
-                $('#tenants-list').append('<tr><td colspan="3" class="text-center">No tenants found</td></tr>');
-            }
-        });
-    });
-</script>
+    <script>
+      $(document).ready(function() {
+          // Fetch tenants and cars
+          $.get('/get_all_tenants_and_cars', function(tenants) {
+              if (tenants.length > 0) {
+                  tenants.forEach(function(tenant) {
+                      // Build the row for each tenant with the count of rented cars
+                      let rentedCarsCount = tenant.rented_cars_count;
+                      let rentedCarsMessage = rentedCarsCount > 0
+                          ? `<span class="clickable" style="color: blue; cursor: pointer;" data-tenant="${tenant.username}" data-cars="${tenant.rented_cars.join(', ')}">${rentedCarsCount}</span>`
+                          : 'No rented cars';
+  
+                      // Build the tenant row
+                      let tenantRow = `
+                          <tr>
+                              <td>${tenant.username}</td>
+                              <td>${rentedCarsMessage}</td>
+                          </tr>
+                      `;
+                      $('#tenants-list').append(tenantRow);
+                  });
+              } else {
+                  $('#tenants-list').append('<tr><td colspan="3" class="text-center">No tenants found</td></tr>');
+              }
+          });
+  
+          // Handle click event to show car names in a modal
+          $(document).on('click', '.clickable', function() {
+              var tenantUsername = $(this).data('tenant');
+              var carNames = $(this).data('cars').split(', ');
+  
+              // Create a list of car names
+              var carListHtml = `<ul>`;
+              carNames.forEach(function(car) {
+                  carListHtml += `<li>${car}</li>`;
+              });
+              carListHtml += `</ul>`;
+  
+              // Insert the list of rented cars into the modal body
+              $('#carListBody').html(`
+                  <h5>Cars rented by ${tenantUsername}:</h5>
+                  ${carListHtml}
+              `);
+  
+              // Show the modal
+              $('#rentedCarsModal').modal('show');
+          });
+      });
+  </script>
+  
 
 
 
